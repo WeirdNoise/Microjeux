@@ -7,10 +7,21 @@ import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
 
 // --- CONFIGURATION AUDIO ---
-// Utilisation de new URL pour garantir une résolution correcte du chemin du fichier audio
-// sans dépendre du système d'importation de modules pour les assets binaires.
+// Fonction utilitaire pour résoudre l'URL de l'asset en toute sécurité
+const getAssetUrl = (path: string) => {
+    try {
+        // Tentative standard compatible Vite / ESM
+        return new URL(path, import.meta.url).href;
+    } catch (e) {
+        // Si l'environnement ne supporte pas import.meta.url ou s'il est malformé,
+        // on retourne le chemin relatif simple en fallback.
+        console.warn("Audio URL resolution failed, falling back to relative path.");
+        return path;
+    }
+};
+
 const AUDIO_ASSETS = {
-    MUSIC: new URL('./assets/sounds/MusiqueDuJeu.mp3', import.meta.url).href
+    MUSIC: getAssetUrl('./assets/sounds/MusiqueDuJeu.mp3')
 };
 
 const DEFAULT_CONFIG: GameConfig = { 

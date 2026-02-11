@@ -63,6 +63,39 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.restore();
     };
 
+    // Nouvelle fonction pour le cadre global (plus épais, double trait)
+    const drawHandDrawnBorder = () => {
+        ctx.save();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        
+        const pad = 10; // Marge intérieure pour ne pas coller au bord du canvas
+        const w = GAME_WIDTH - pad * 2;
+        const h = GAME_HEIGHT - pad * 2;
+        const x = pad;
+        const y = pad;
+
+        const jitter = () => (Math.random() - 0.5) * 3;
+
+        // On dessine le cadre en 2 passes pour un effet "crayonné"
+        for(let i=0; i<2; i++) {
+            ctx.beginPath();
+            // Haut
+            ctx.moveTo(x + jitter(), y + jitter());
+            ctx.quadraticCurveTo(x + w/2, y + jitter(), x + w + jitter(), y + jitter());
+            // Droite
+            ctx.quadraticCurveTo(x + w + jitter(), y + h/2, x + w + jitter(), y + h + jitter());
+            // Bas
+            ctx.quadraticCurveTo(x + w/2, y + h + jitter(), x + jitter(), y + h + jitter());
+            // Gauche
+            ctx.quadraticCurveTo(x + jitter(), y + h/2, x + jitter(), y + jitter());
+            ctx.stroke();
+        }
+        ctx.restore();
+    };
+
     const drawWallScribbles = (wall: Wall) => {
         ctx.save();
         ctx.beginPath();
@@ -217,21 +250,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.restore();
     }
 
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(2, 2, GAME_WIDTH - 4, GAME_HEIGHT - 4);
+    // --- DRAW FRAME ---
+    drawHandDrawnBorder();
 
   }, [gameState, noisePattern]);
 
   return (
-    <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black">
-        <canvas
-            ref={canvasRef}
-            width={GAME_WIDTH}
-            height={GAME_HEIGHT}
-            className="block max-w-full max-h-full w-auto h-auto object-contain"
-        />
-    </div>
+    <canvas
+        ref={canvasRef}
+        width={GAME_WIDTH}
+        height={GAME_HEIGHT}
+        className="w-full h-full object-contain block"
+    />
   );
 };
 

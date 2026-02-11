@@ -100,10 +100,12 @@ const App: React.FC = () => {
       {gameState.status === 'MENU' ? (
         <MainMenu onStart={startGame} initialConfig={currentConfig.current} />
       ) : (
-        <>
+        /* Conteneur Aspect Ratio 16:9 centré */
+        /* max-w-[177.78vh] signifie : la largeur ne dépasse pas 1.77 * la hauteur (format 16/9) */
+        <div className="relative w-full max-w-[177.78vh] aspect-video shadow-[0_0_50px_rgba(255,255,255,0.05)] bg-[#111]">
           <GameCanvas gameState={gameState} />
           <UIOverlay gameState={gameState} />
-        </>
+        </div>
       )}
     </div>
   );

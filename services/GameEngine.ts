@@ -120,7 +120,9 @@ export const createInitialState = (config: GameConfig): GameState => {
   const enemies: Enemy[] = [];
   
   const playerStart = { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, radius: PLAYER_RADIUS };
-  const uiSafeZone = { x: 50, y: GAME_HEIGHT - 250, w: 450, h: 250 }; // Zone UI en bas à gauche
+  
+  // Zone UI en bas à droite (approximative pour l'évitement lors de la génération)
+  const uiSafeZone = { x: GAME_WIDTH - 500, y: GAME_HEIGHT - 300, w: 450, h: 250 }; 
 
   // 1. Generate Walls
   for (let i = 0; i < config.wallCount; i++) {
@@ -348,6 +350,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           wall.isTagged = true;
           newState.player.tagsCompleted++;
           newState.screenShake = 10;
+          newState.audioEvents.push('WALL_COMPLETE'); // Sound Trigger
        }
     }
   }

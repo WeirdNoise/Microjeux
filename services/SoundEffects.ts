@@ -113,4 +113,30 @@ export class SoundEffects {
     osc.stop(t + 0.4);
     lfo.stop(t + 0.4);
   }
+
+  public playSuccess() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    // Petit arpège rapide type "Game Boy Coin/Success"
+    const notes = [523.25, 659.25, 783.99]; // Do Mi Sol (C5 E5 G5)
+    
+    notes.forEach((freq, i) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        
+        const startTime = t + (i * 0.05);
+        gain.gain.setValueAtTime(0.1, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx!.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+    });
+  }
 }

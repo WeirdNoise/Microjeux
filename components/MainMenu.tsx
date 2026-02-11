@@ -6,12 +6,72 @@ interface MainMenuProps {
   onStart: (config: GameConfig) => void;
 }
 
+const RIDDLES = [
+  {
+    question: "Je suis grand quand je suis jeune et petit quand je suis vieux. Qui suis-je ?",
+    options: ["Un arbre", "Une bougie", "Un éléphant", "Un nuage"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a des dents mais ne mord pas ?",
+    options: ["Un peigne", "Une fourchette", "Un tigre", "Une scie"],
+    correct: 0
+  },
+  {
+    question: "Je tombe sans me faire mal. Qui suis-je ?",
+    options: ["Une pierre", "La pluie", "Un acrobate", "Une plume"],
+    correct: 1
+  },
+  {
+    question: "Plus j'ai de gardiens, moins je suis gardé. Qui suis-je ?",
+    options: ["Un trésor", "Une prison", "Un secret", "Un but de foot"],
+    correct: 2
+  },
+  {
+    question: "Je commence la nuit et je finis le matin. Qui suis-je ?",
+    options: ["Le soleil", "La lune", "La lettre N", "Le petit déjeuner"],
+    correct: 2
+  },
+  {
+    question: "J'ai un chapeau mais pas de tête, et un pied mais pas de chaussure. Qui suis-je ?",
+    options: ["Un champignon", "Un magicien", "Une table", "Une lampe"],
+    correct: 0
+  },
+  {
+    question: "Je peux voler sans avoir d'ailes. Je peux pleurer sans avoir d'yeux. Qui suis-je ?",
+    options: ["Le vent", "Un avion", "Le nuage", "Un oiseau"],
+    correct: 2
+  }
+];
+
 const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart }) => {
   const [config, setConfig] = useState<GameConfig>(initialConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Riddle State
+  const [isRiddleOpen, setIsRiddleOpen] = useState(false);
+  const [currentRiddle, setCurrentRiddle] = useState(RIDDLES[0]);
+  const [isWrongAnim, setIsWrongAnim] = useState(false);
 
   const handleChange = (key: keyof GameConfig, val: number) => {
       setConfig(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleStartRequest = () => {
+      // Pick a random riddle
+      const random = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
+      setCurrentRiddle(random);
+      setIsWrongAnim(false);
+      setIsRiddleOpen(true);
+  };
+
+  const checkAnswer = (index: number) => {
+      if (index === currentRiddle.correct) {
+          onStart(config);
+      } else {
+          setIsWrongAnim(true);
+          setTimeout(() => setIsWrongAnim(false), 500);
+      }
   };
 
   // Icônes SVG simples
@@ -33,13 +93,13 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart }) => {
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white">
       
       {/* --- ÉCRAN ACCUEIL --- */}
-      <div className={`flex flex-col items-center transition-opacity duration-300 ${isSettingsOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`flex flex-col items-center transition-opacity duration-300 ${isSettingsOpen || isRiddleOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <h1 className="text-9xl font-bold mb-12 tracking-tighter animate-pulse" style={{ textShadow: "0 0 40px rgba(255,255,255,0.3)" }}>
             LE TCHIPEUR
           </h1>
           
           <button 
-              onClick={() => onStart(config)}
+              onClick={handleStartRequest}
               className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black transition-colors duration-200 uppercase tracking-widest"
           >
               COLORIE TA VILLE
@@ -47,13 +107,57 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart }) => {
       </div>
 
       {/* Bouton Settings (en haut à droite) */}
-      {!isSettingsOpen && (
+      {!isSettingsOpen && !isRiddleOpen && (
         <button 
           onClick={() => setIsSettingsOpen(true)}
           className="absolute top-8 right-8 p-4 border border-transparent hover:border-white rounded-full transition-all text-gray-500 hover:text-white"
         >
           <GearIcon />
         </button>
+      )}
+
+      {/* --- MODALE ÉNIGME --- */}
+      {isRiddleOpen && (
+        <div className="absolute inset-0 bg-black/95 flex items-center justify-center animate-in fade-in duration-200">
+           <div className={`border-4 border-white p-12 max-w-4xl w-full text-center shadow-[0_0_50px_rgba(255,255,255,0.1)] relative ${isWrongAnim ? 'animate-shake' : ''}`}>
+              <h2 className="text-3xl font-bold tracking-widest mb-2 text-gray-400">POUR JOUER, RÉPONDS À L'ÉNIGME</h2>
+              <div className="w-full h-1 bg-white mb-8"></div>
+              
+              <h3 className="text-4xl font-bold mb-12 leading-tight">
+                  "{currentRiddle.question}"
+              </h3>
+
+              <div className="grid grid-cols-2 gap-6">
+                  {currentRiddle.options.map((option, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={() => checkAnswer(idx)}
+                        className="text-2xl border-2 border-gray-500 py-6 px-4 hover:border-white hover:bg-white hover:text-black transition-all"
+                      >
+                          {option}
+                      </button>
+                  ))}
+              </div>
+
+              <button 
+                onClick={() => setIsRiddleOpen(false)}
+                className="mt-12 text-gray-500 hover:text-white underline"
+              >
+                Retour
+              </button>
+           </div>
+           {/* Custom Keyframe for shake in plain style or just reuse existing mechanics */}
+           <style>{`
+             @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); border-color: red; }
+                20%, 40%, 60%, 80% { transform: translateX(10px); border-color: red; }
+             }
+             .animate-shake {
+                animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+             }
+           `}</style>
+        </div>
       )}
 
       {/* --- MODALE PARAMÈTRES --- */}

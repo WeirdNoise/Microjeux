@@ -10,7 +10,7 @@ export const PLAYER_RADIUS = 35;
 export const PLAYER_MAX_BOOST_TIME = 10; 
 
 // Vitesses ajustées pour la résolution HD
-export const DOG_SPEED = 2.9; // Légèrement ralenti (était 3.5)
+export const DOG_SPEED = 3.5; 
 export const DOG_SPRINT_SPEED = 8.5; 
 export const OLD_MAN_SPEED = 1.8;
 

@@ -57,7 +57,6 @@ const App: React.FC = () => {
               if (event === 'SPRAY') sfx.current.playSpray();
               if (event === 'BARK') sfx.current.playBark();
               if (event === 'YELL') sfx.current.playYell();
-              if (event === 'WALL_COMPLETE') sfx.current.playSuccess();
           });
       }
 

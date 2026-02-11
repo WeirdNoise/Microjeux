@@ -38,10 +38,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     ctx.fillStyle = "#111111"; 
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
+    // Determine Game Opacity
+    const isGameOver = gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER';
+    const contentOpacity = isGameOver ? 0.2 : 1.0;
+
     const shakeX = (Math.random() - 0.5) * gameState.screenShake;
     const shakeY = (Math.random() - 0.5) * gameState.screenShake;
+    
     ctx.save();
+    // Appliquer le tremblement et l'opacité au contenu du jeu
     ctx.translate(shakeX, shakeY);
+    ctx.globalAlpha = contentOpacity;
 
     // --- RENDER HELPERS ---
     const drawRoughRect = (x: number, y: number, w: number, h: number, filled: boolean = false) => {
@@ -59,39 +66,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         if (filled) {
             ctx.fillStyle = "rgba(255, 255, 255, 0.15)"; 
             ctx.fill();
-        }
-        ctx.restore();
-    };
-
-    // Nouvelle fonction pour le cadre global (plus épais, double trait)
-    const drawHandDrawnBorder = () => {
-        ctx.save();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 4;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        
-        const pad = 10; // Marge intérieure pour ne pas coller au bord du canvas
-        const w = GAME_WIDTH - pad * 2;
-        const h = GAME_HEIGHT - pad * 2;
-        const x = pad;
-        const y = pad;
-
-        const jitter = () => (Math.random() - 0.5) * 3;
-
-        // On dessine le cadre en 2 passes pour un effet "crayonné"
-        for(let i=0; i<2; i++) {
-            ctx.beginPath();
-            // Haut
-            ctx.moveTo(x + jitter(), y + jitter());
-            ctx.quadraticCurveTo(x + w/2, y + jitter(), x + w + jitter(), y + jitter());
-            // Droite
-            ctx.quadraticCurveTo(x + w + jitter(), y + h/2, x + w + jitter(), y + h + jitter());
-            // Bas
-            ctx.quadraticCurveTo(x + w/2, y + h + jitter(), x + jitter(), y + h + jitter());
-            // Gauche
-            ctx.quadraticCurveTo(x + jitter(), y + h/2, x + jitter(), y + jitter());
-            ctx.stroke();
         }
         ctx.restore();
     };
@@ -233,12 +207,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     // Particles
     ctx.fillStyle = "white";
     gameState.particles.forEach(p => {
-        ctx.globalAlpha = p.life / 20;
+        ctx.globalAlpha = (p.life / 20) * contentOpacity; // Combine particles alpha with game opacity
         ctx.fillRect(p.x, p.y, 3, 3);
     });
-    ctx.globalAlpha = 1.0;
+    ctx.globalAlpha = contentOpacity;
 
-    ctx.restore(); // End Shake
+    ctx.restore(); // End Shake & Content Opacity
 
     // Overlay Texture
     if (noisePattern) {
@@ -250,7 +224,42 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.restore();
     }
 
-    // --- DRAW FRAME ---
+    // --- DRAW FRAME (Always Alpha 1.0) ---
+    
+    // Nouvelle fonction pour le cadre global (plus épais, double trait)
+    const drawHandDrawnBorder = () => {
+        ctx.save();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.globalAlpha = 1.0; // Ensure border is always opaque
+        
+        const pad = 10; // Marge intérieure pour ne pas coller au bord du canvas
+        const w = GAME_WIDTH - pad * 2;
+        const h = GAME_HEIGHT - pad * 2;
+        const x = pad;
+        const y = pad;
+
+        const jitter = () => (Math.random() - 0.5) * 3;
+
+        // On dessine le cadre en 2 passes pour un effet "crayonné"
+        for(let i=0; i<2; i++) {
+            ctx.beginPath();
+            // Haut
+            ctx.moveTo(x + jitter(), y + jitter());
+            ctx.quadraticCurveTo(x + w/2, y + jitter(), x + w + jitter(), y + jitter());
+            // Droite
+            ctx.quadraticCurveTo(x + w + jitter(), y + h/2, x + w + jitter(), y + h + jitter());
+            // Bas
+            ctx.quadraticCurveTo(x + w/2, y + h + jitter(), x + jitter(), y + h + jitter());
+            // Gauche
+            ctx.quadraticCurveTo(x + jitter(), y + h/2, x + jitter(), y + jitter());
+            ctx.stroke();
+        }
+        ctx.restore();
+    };
+
     drawHandDrawnBorder();
 
   }, [gameState, noisePattern]);

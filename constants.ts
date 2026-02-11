@@ -10,8 +10,8 @@ export const PLAYER_RADIUS = 35;
 export const PLAYER_MAX_BOOST_TIME = 10; 
 
 // Vitesses ajustées pour la résolution HD
-export const DOG_SPEED = 1.2; // Ralenti (était 3.5)
-export const DOG_SPRINT_SPEED = 4.0; // Ralenti (était 8.5)
+export const DOG_SPEED = 2.8; // Augmenté (était 1.2)
+export const DOG_SPRINT_SPEED = 7.5; // Augmenté (était 4.0) - Plus rapide que la marche du joueur
 export const OLD_MAN_SPEED = 1.8;
 
 export const TAG_TIME_REQUIRED = 100; // 100 / 4 per click = 25 clicks

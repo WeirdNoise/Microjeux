@@ -23,11 +23,15 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
   const dogHits = gameState.player.dogHits || 0;
   const maxDogHits = 3;
 
+  const isGameOver = gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER';
+
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-8">
       
-      {/* Bottom Right Dashboard - Aligné à droite pour ne pas toucher les bords */}
-      <div className="absolute bottom-8 right-8 flex flex-col items-end gap-2 text-white">
+      {/* Bottom Right Dashboard - Fade out on Game Over */}
+      <div 
+        className={`absolute bottom-8 right-8 flex flex-col items-end gap-2 text-white transition-opacity duration-1000 ${isGameOver ? 'opacity-20' : 'opacity-100'}`}
+      >
           
           {/* Time */}
           <div className="text-5xl tracking-tighter opacity-80 mb-1" style={{ textShadow: "0 0 10px white" }}>

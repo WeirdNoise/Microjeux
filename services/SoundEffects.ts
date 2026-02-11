@@ -2,6 +2,10 @@
 export class SoundEffects {
   private ctx: AudioContext | null = null;
   
+  // Variables pour le son de boost continu
+  private boostOsc: OscillatorNode | null = null;
+  private boostGain: GainNode | null = null;
+  
   constructor() {
     // On instancie le contexte mais il démarrera suspended
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -10,6 +14,60 @@ export class SoundEffects {
   public async resume() {
     if (this.ctx && this.ctx.state === 'suspended') {
       await this.ctx.resume();
+    }
+  }
+
+  // --- GESTION DU BOOST CONTINU ---
+  public setBoostState(isBoosting: boolean) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    if (isBoosting) {
+        // Si on booste et que le son n'est pas déjà lancé
+        if (!this.boostOsc) {
+            this.boostOsc = this.ctx.createOscillator();
+            this.boostGain = this.ctx.createGain();
+
+            // Son type "Moteur électrique / Vent" (Sawtooth filtrée)
+            this.boostOsc.type = 'sawtooth';
+            // Fréquence qui monte pour donner l'impression d'accélération
+            this.boostOsc.frequency.setValueAtTime(60, t);
+            this.boostOsc.frequency.linearRampToValueAtTime(120, t + 2); 
+
+            // Filtre passe-bas pour étouffer le côté agressif de la sawtooth
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(300, t);
+            filter.frequency.linearRampToValueAtTime(600, t + 2);
+
+            // Volume (Fade in rapide)
+            this.boostGain.gain.setValueAtTime(0, t);
+            this.boostGain.gain.linearRampToValueAtTime(0.15, t + 0.1);
+
+            // Connexions
+            this.boostOsc.connect(filter);
+            filter.connect(this.boostGain);
+            this.boostGain.connect(this.ctx.destination);
+            
+            this.boostOsc.start(t);
+        }
+    } else {
+        // Si on ne booste plus mais que le son joue encore
+        if (this.boostOsc && this.boostGain) {
+            // Fade out
+            this.boostGain.gain.cancelScheduledValues(t);
+            this.boostGain.gain.setValueAtTime(this.boostGain.gain.value, t);
+            this.boostGain.gain.linearRampToValueAtTime(0, t + 0.2);
+            
+            this.boostOsc.stop(t + 0.2);
+            
+            // Cleanup après le stop
+            const oldOsc = this.boostOsc;
+            setTimeout(() => { if(oldOsc) oldOsc.disconnect(); }, 250);
+            
+            this.boostOsc = null;
+            this.boostGain = null;
+        }
     }
   }
 

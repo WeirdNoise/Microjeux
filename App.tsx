@@ -51,17 +51,28 @@ const App: React.FC = () => {
       } else if (gameState.status === 'VICTORY') {
           musicGen.current.stop(); // Arrêter la musique de fond
           musicGen.current.playVictory();
+          // Couper le boost si on gagne
+          sfx.current.setBoostState(false);
       } else if (gameState.status === 'GAMEOVER') {
           musicGen.current.stop(); // Arrêter la musique de fond
           musicGen.current.playGameOver();
+          // Couper le boost si on perd
+          sfx.current.setBoostState(false);
       } else {
           musicGen.current.stop();
+          sfx.current.setBoostState(false);
       }
   }, [gameState.status]);
 
-  // --- GESTION AUDIO (SFX ONE-SHOT) ---
+  // --- GESTION AUDIO (SFX ONE-SHOT & BOOST CONTINU) ---
   useEffect(() => {
-      // Lecture des bruitages (SFX) basés sur les événements instantanés
+      // 1. Gestion du son continu de boost
+      // On le met à jour à chaque frame où l'état de boost change
+      if (gameState.status === 'PLAYING') {
+          sfx.current.setBoostState(gameState.player.isBoosting);
+      }
+
+      // 2. Lecture des bruitages (SFX) basés sur les événements instantanés
       if (gameState.audioEvents && gameState.audioEvents.length > 0) {
           gameState.audioEvents.forEach(event => {
               if (event === 'SPRAY') sfx.current.playSpray();
@@ -70,7 +81,7 @@ const App: React.FC = () => {
               if (event === 'WALL_DONE') sfx.current.playSuccess();
           });
       }
-  }, [gameState.audioEvents]);
+  }, [gameState.audioEvents, gameState.player.isBoosting, gameState.status]);
 
   // --- NAVIGATION / TIMER FIN DE PARTIE ---
   useEffect(() => {

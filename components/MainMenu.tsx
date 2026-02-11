@@ -41,6 +41,41 @@ const RIDDLES = [
     question: "Je peux voler sans avoir d'ailes. Je peux pleurer sans avoir d'yeux. Qui suis-je ?",
     options: ["Le vent", "Un avion", "Le nuage", "Un oiseau"],
     correct: 2
+  },
+  {
+    question: "Quel mois de l'année a 28 jours ?",
+    options: ["Février", "Juin", "Décembre", "Tous les mois"],
+    correct: 3
+  },
+  {
+    question: "Qu'est-ce qui monte et qui descend sans jamais bouger ?",
+    options: ["Un ascenseur", "L'escalier", "La température", "Le prix"],
+    correct: 1
+  },
+  {
+    question: "Je suis plein de trous mais je peux retenir l'eau. Qui suis-je ?",
+    options: ["Un filet", "Une éponge", "Un seau percé", "Un arrosoir"],
+    correct: 1
+  },
+  {
+    question: "Si tu me dis mon nom, je me brise. Qui suis-je ?",
+    options: ["Le silence", "Le verre", "La glace", "Une promesse"],
+    correct: 0
+  },
+  {
+    question: "Je traverse les villes et les champs mais je ne bouge jamais. Qui suis-je ?",
+    options: ["La route", "La rivière", "Le vent", "Le train"],
+    correct: 0
+  },
+  {
+    question: "Qu'est-ce qui a un œil mais ne peut pas voir ?",
+    options: ["Un cyclope", "Une aiguille", "Un cyclone", "Une pomme de terre"],
+    correct: 1
+  },
+  {
+    question: "J'ai des villes, mais pas de maisons. J'ai des montagnes, mais pas d'arbres. Qui suis-je ?",
+    options: ["Une carte", "Un rêve", "Le désert", "Une planète"],
+    correct: 0
   }
 ];
 
@@ -58,7 +93,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart }) => {
   };
 
   const handleStartRequest = () => {
-      // Pick a random riddle
+      // Pick a random riddle ensuring variety
       const random = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
       setCurrentRiddle(random);
       setIsWrongAnim(false);

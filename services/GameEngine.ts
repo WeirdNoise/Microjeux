@@ -120,7 +120,7 @@ export const createInitialState = (config: GameConfig): GameState => {
   const enemies: Enemy[] = [];
   
   const playerStart = { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, radius: PLAYER_RADIUS };
-  const uiSafeZone = { x: 50, y: GAME_HEIGHT - 250, w: 450, h: 250 }; // Zone UI en bas à gauche
+  const uiSafeZone = { x: GAME_WIDTH - 500, y: GAME_HEIGHT - 300, w: 450, h: 250 }; // Zone UI en bas à droite (mise à jour)
 
   // 1. Generate Walls
   for (let i = 0; i < config.wallCount; i++) {
@@ -348,6 +348,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           wall.isTagged = true;
           newState.player.tagsCompleted++;
           newState.screenShake = 10;
+          newState.audioEvents.push('WALL_DONE'); // Son de succès
        }
     }
   }
@@ -407,18 +408,24 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               if (distToTarget > 10) {
                   let dX = dx / distToTarget;
                   let dY = dy / distToTarget;
+                  
+                  // Wall avoidance (Dog)
                   newState.walls.forEach(wall => {
                       const wallCx = wall.x + wall.width/2;
                       const wallCy = wall.y + wall.height/2;
                       const distX = Math.abs(enemy.x - wallCx) - (wall.width/2 + enemy.width/2);
                       const distY = Math.abs(enemy.y - wallCy) - (wall.height/2 + enemy.height/2);
+                      
+                      // Si on est proche d'un mur
                       if (distX < 40 && distY < 40) {
                            const awayX = enemy.x - wallCx;
                            const awayY = enemy.y - wallCy;
                            const len = Math.sqrt(awayX*awayX + awayY*awayY);
-                           if (len > 0) { dX += (awayX / len) * 2.5; dY += (awayY / len) * 2.5; }
+                           // Réduction de la force de répulsion de 2.5 à 1.5 pour éviter que le chien ne reparte en arrière
+                           if (len > 0) { dX += (awayX / len) * 1.5; dY += (awayY / len) * 1.5; }
                       }
                   });
+                  
                   const finalLen = Math.sqrt(dX*dX + dY*dY);
                   if (finalLen > 0) {
                       evx = (dX / finalLen) * currentSpeed;

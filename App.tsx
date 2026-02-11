@@ -57,6 +57,7 @@ const App: React.FC = () => {
               if (event === 'SPRAY') sfx.current.playSpray();
               if (event === 'BARK') sfx.current.playBark();
               if (event === 'YELL') sfx.current.playYell();
+              if (event === 'WALL_DONE') sfx.current.playSuccess();
           });
       }
 
@@ -94,7 +95,7 @@ const App: React.FC = () => {
   }, [loop]);
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden select-none flex items-center justify-center">
+    <div className="relative w-full h-full bg-black overflow-hidden select-none flex items-center justify-center">
       
       {gameState.status === 'MENU' ? (
         <MainMenu onStart={startGame} initialConfig={currentConfig.current} />

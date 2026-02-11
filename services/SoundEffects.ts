@@ -113,4 +113,29 @@ export class SoundEffects {
     osc.stop(t + 0.4);
     lfo.stop(t + 0.4);
   }
+
+  public playSuccess() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    // Accord arpégé simple (Do majeur : Do-Mi-Sol)
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+
+    notes.forEach((freq, i) => {
+        const osc = this.ctx!.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t + i * 0.05);
+        
+        const gain = this.ctx!.createGain();
+        gain.gain.setValueAtTime(0, t + i * 0.05);
+        gain.gain.linearRampToValueAtTime(0.1, t + i * 0.05 + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.4);
+
+        osc.connect(gain);
+        gain.connect(this.ctx!.destination);
+        
+        osc.start(t + i * 0.05);
+        osc.stop(t + i * 0.05 + 0.4);
+    });
+  }
 }

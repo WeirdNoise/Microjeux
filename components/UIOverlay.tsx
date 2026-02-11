@@ -26,8 +26,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-8">
       
-      {/* Bottom Left Dashboard */}
-      <div className="absolute bottom-6 left-6 flex flex-col items-start gap-2 text-white">
+      {/* Bottom Right Dashboard - Aligné à droite pour ne pas toucher les bords */}
+      <div className="absolute bottom-8 right-8 flex flex-col items-end gap-2 text-white">
           
           {/* Time */}
           <div className="text-5xl tracking-tighter opacity-80 mb-1" style={{ textShadow: "0 0 10px white" }}>
@@ -46,7 +46,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
           </div>
           
           {/* Objective Tags */}
-          <div className="flex gap-2 mt-1">
+          <div className="flex gap-2 mt-1 justify-end">
             {Array.from({length: gameState.config.wallCount}).map((_, i) => (
                 <div 
                     key={i} 
@@ -56,7 +56,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
           </div>
 
           {/* Dog Danger Indicators */}
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-2 justify-end">
             {Array.from({length: maxDogHits}).map((_, i) => {
                 const isHit = i < dogHits;
                 return (

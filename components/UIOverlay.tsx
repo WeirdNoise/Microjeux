@@ -26,8 +26,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-8">
       
-      {/* Bottom Right Dashboard */}
-      <div className="absolute bottom-6 right-24 flex flex-col items-end gap-2 text-white">
+      {/* Bottom Left Dashboard */}
+      <div className="absolute bottom-6 left-6 flex flex-col items-start gap-2 text-white">
           
           {/* Time */}
           <div className="text-5xl tracking-tighter opacity-80 mb-1" style={{ textShadow: "0 0 10px white" }}>

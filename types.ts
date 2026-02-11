@@ -87,6 +87,7 @@ export interface GameState {
   enemies: Enemy[];
   particles: Particle[];
   screenShake: number;
+  audioEvents: string[]; // Queue of one-shot audio events to play this frame
 }
 
 export interface Particle {

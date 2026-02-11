@@ -1,16 +1,18 @@
-export const GAME_WIDTH = typeof window !== 'undefined' ? window.innerWidth : 1920;
-export const GAME_HEIGHT = typeof window !== 'undefined' ? window.innerHeight : 1080;
 
-export const PLAYER_SPEED = 6;
-export const PLAYER_BOOST_SPEED = 10;
+// Résolution de référence HD pour garantir les proportions
+export const GAME_WIDTH = 1920;
+export const GAME_HEIGHT = 1080;
+
+export const PLAYER_SPEED = 7;
+export const PLAYER_BOOST_SPEED = 11;
 export const PLAYER_RADIUS = 35; 
 
 export const PLAYER_MAX_BOOST_TIME = 10; 
 
-// Reduced speeds as requested
-export const DOG_SPEED = 2.2; 
-export const DOG_SPRINT_SPEED = 7.0; 
-export const OLD_MAN_SPEED = 1.2;
+// Vitesses ajustées pour la résolution HD
+export const DOG_SPEED = 3.5; 
+export const DOG_SPRINT_SPEED = 8.5; 
+export const OLD_MAN_SPEED = 1.8;
 
 export const TAG_TIME_REQUIRED = 100; // 100 / 4 per click = 25 clicks
 export const GAME_DURATION = 180; 

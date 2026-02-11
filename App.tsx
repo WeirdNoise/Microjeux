@@ -6,6 +6,7 @@ import { GameState, GameConfig } from './types';
 import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
 import { MusicGenerator } from './services/MusicGenerator';
+import { SoundEffects } from './services/SoundEffects';
 
 const DEFAULT_CONFIG: GameConfig = { 
     wallCount: 5, 
@@ -20,8 +21,9 @@ const App: React.FC = () => {
   const inputManager = useRef<InputManager | null>(null);
   const requestRef = useRef<number>(0);
   
-  // --- AUDIO GENERATOR ---
+  // --- AUDIO GENERATORS ---
   const musicGen = useRef<MusicGenerator>(new MusicGenerator());
+  const sfx = useRef<SoundEffects>(new SoundEffects());
 
   // --- STATE TRACKING ---
   const currentConfig = useRef<GameConfig>(DEFAULT_CONFIG);
@@ -30,6 +32,7 @@ const App: React.FC = () => {
     // Initialisation du contexte audio sur interaction utilisateur
     try {
         await musicGen.current.init();
+        await sfx.current.resume();
         musicGen.current.play();
     } catch (e) {
         console.warn("Erreur audio:", e);
@@ -48,6 +51,15 @@ const App: React.FC = () => {
           musicGen.current.stop();
       }
 
+      // Lecture des bruitages (SFX) basés sur les événements
+      if (gameState.audioEvents && gameState.audioEvents.length > 0) {
+          gameState.audioEvents.forEach(event => {
+              if (event === 'SPRAY') sfx.current.playSpray();
+              if (event === 'BARK') sfx.current.playBark();
+              if (event === 'YELL') sfx.current.playYell();
+          });
+      }
+
       // Timer de retour au menu pour les écrans de fin
       let timeoutId: ReturnType<typeof setTimeout>;
       if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
@@ -56,7 +68,7 @@ const App: React.FC = () => {
         }, 5000);
       }
       return () => { if (timeoutId) clearTimeout(timeoutId); };
-  }, [gameState.status]);
+  }, [gameState.status, gameState.audioEvents]); // Dépendance à audioEvents pour déclencher l'effet
 
   const loop = useCallback(() => {
     if (!inputManager.current) return;

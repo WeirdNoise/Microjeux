@@ -1,3 +1,4 @@
+
 import { 
   GameState, 
   InputState, 
@@ -119,7 +120,7 @@ export const createInitialState = (config: GameConfig): GameState => {
   const enemies: Enemy[] = [];
   
   const playerStart = { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, radius: PLAYER_RADIUS };
-  const uiSafeZone = { x: GAME_WIDTH - 450, y: GAME_HEIGHT - 200, w: 450, h: 200 };
+  const uiSafeZone = { x: 50, y: GAME_HEIGHT - 250, w: 450, h: 250 }; // Zone UI en bas à gauche
 
   // 1. Generate Walls
   for (let i = 0; i < config.wallCount; i++) {
@@ -223,13 +224,15 @@ export const createInitialState = (config: GameConfig): GameState => {
     enemies,
     particles: [],
     screenShake: 0,
+    audioEvents: [] // Init audio
   };
 };
 
 // --- MAIN LOOP ---
 
 export const updateGameState = (state: GameState, input: InputState): GameState => {
-  const newState = { ...state, player: { ...state.player } };
+  // Reset audio events for this frame
+  const newState = { ...state, player: { ...state.player }, audioEvents: [] as string[] };
 
   // Update Particles always (for active NDI even in menu)
   newState.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; });
@@ -330,6 +333,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
     if (closestWall) {
        const wall = closestWall as Wall;
        wall.tagProgress += 4; 
+       newState.audioEvents.push('SPRAY'); // Trigger spray sound
        for(let i=0; i<5; i++) {
            newState.particles.push({
               x: newState.player.x + (Math.random() - 0.5) * 20, 
@@ -464,8 +468,12 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               newState.screenShake = 5;
               if (enemy.type === EntityType.DOG) {
                   newState.player.dogHits = (newState.player.dogHits || 0) + 1;
+                  newState.audioEvents.push('BARK'); // Bruit chien
                   if (newState.player.dogHits >= 3) newState.status = 'GAMEOVER';
+              } else {
+                  newState.audioEvents.push('YELL'); // Bruit vieux
               }
+
               if (enemy.state === 'chasing') {
                   enemy.state = enemy.type === EntityType.DOG ? 'barking' : 'yelling';
                   enemy.cooldown = 120;

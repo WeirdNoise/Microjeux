@@ -79,14 +79,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
 
       {/* End Game Screens */}
       {gameState.status === 'VICTORY' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-50">
-             <h1 className="text-9xl text-white font-bold mb-8 tracking-tighter animate-pulse" style={{ textShadow: "0 0 30px white" }}>WINNER</h1>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
+             <h1 className="text-9xl text-white font-bold mb-8 tracking-tighter animate-pulse" style={{ textShadow: "0 0 30px white, 0 0 60px black" }}>WINNER</h1>
         </div>
       )}
 
       {gameState.status === 'GAMEOVER' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-50">
-             <h1 className="text-9xl text-white font-bold mb-8 tracking-tighter" style={{ textShadow: "0 0 20px white" }}>GAME OVER</h1>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
+             <h1 className="text-9xl text-white font-bold mb-8 tracking-tighter" style={{ textShadow: "0 0 20px white, 0 0 40px black" }}>GAME OVER</h1>
         </div>
       )}
     </div>

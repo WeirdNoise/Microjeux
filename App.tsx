@@ -66,7 +66,7 @@ const App: React.FC = () => {
       if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
         timeoutId = setTimeout(() => {
           setGameState(createInitialState(currentConfig.current)); 
-        }, 5000);
+        }, 4000);
       }
       return () => { if (timeoutId) clearTimeout(timeoutId); };
   }, [gameState.status, gameState.audioEvents]); // Dépendance à audioEvents pour déclencher l'effet

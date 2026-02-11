@@ -6,22 +6,11 @@ import { GameState, GameConfig } from './types';
 import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
 
-// --- CONFIGURATION AUDIO ---
-// Fonction utilitaire pour résoudre l'URL de l'asset en toute sécurité
-const getAssetUrl = (path: string) => {
-    try {
-        // Tentative standard compatible Vite / ESM
-        return new URL(path, import.meta.url).href;
-    } catch (e) {
-        // Si l'environnement ne supporte pas import.meta.url ou s'il est malformé,
-        // on retourne le chemin relatif simple en fallback.
-        console.warn("Audio URL resolution failed, falling back to relative path.");
-        return path;
-    }
-};
+// Import direct de l'asset audio
+import musicUrl from './assets/sounds/MusiqueDuJeu.mp3';
 
 const AUDIO_ASSETS = {
-    MUSIC: getAssetUrl('./assets/sounds/MusiqueDuJeu.mp3')
+    MUSIC: musicUrl
 };
 
 const DEFAULT_CONFIG: GameConfig = { 
@@ -47,29 +36,31 @@ const App: React.FC = () => {
     currentConfig.current = config;
     const initial = createInitialState(config);
     setGameState({ ...initial, status: 'PLAYING' });
-    
-    // Restart Music
-    if (musicRef.current) {
-        musicRef.current.currentTime = 0;
-        musicRef.current.volume = 0.5;
-        musicRef.current.loop = true;
-        
-        const playPromise = musicRef.current.play();
-        if (playPromise !== undefined) {
-            playPromise.catch((e) => {
-                console.warn("Erreur lecture musique (Start):", e instanceof Error ? e.message : "Erreur inconnue");
-            });
-        }
-    }
+    // La gestion audio est maintenant réactive via useEffect
   };
 
-  // --- GESTION FIN DE PARTIE ---
+  // --- GESTION AUDIO ET ETATS DU JEU ---
   useEffect(() => {
-      // Arrêt de la musique en cas de victoire ou défaite
-      if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
-          if (musicRef.current) musicRef.current.pause();
+      const audio = musicRef.current;
+      if (!audio) return;
+
+      if (gameState.status === 'PLAYING') {
+          // Démarrage de la musique
+          audio.currentTime = 0;
+          audio.volume = 0.5;
+          audio.loop = true;
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+              playPromise.catch((e) => {
+                  console.warn("Audio play blocked (attente interaction):", e);
+              });
+          }
+      } else {
+          // Arrêt de la musique (Menu, Victoire, Game Over)
+          audio.pause();
       }
 
+      // Timer de retour au menu pour les écrans de fin
       let timeoutId: ReturnType<typeof setTimeout>;
       if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
         timeoutId = setTimeout(() => {
@@ -78,7 +69,6 @@ const App: React.FC = () => {
       }
       return () => { if (timeoutId) clearTimeout(timeoutId); };
   }, [gameState.status]);
-
 
   const loop = useCallback(() => {
     if (!inputManager.current) return;
@@ -109,12 +99,8 @@ const App: React.FC = () => {
       <audio 
         ref={musicRef} 
         src={AUDIO_ASSETS.MUSIC} 
-        loop 
         preload="auto"
-        onError={(e) => {
-            const target = e.target as HTMLAudioElement;
-            console.error(`ECHEC Audio: Impossible de charger ${target.src}. Vérifiez le dossier assets/sounds.`);
-        }}
+        loop
       />
 
       {gameState.status === 'MENU' ? (

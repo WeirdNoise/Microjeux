@@ -1,4 +1,3 @@
-
 import { 
   GameState, 
   InputState, 
@@ -475,10 +474,10 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               newState.screenShake = 5;
               if (enemy.type === EntityType.DOG) {
                   newState.player.dogHits = (newState.player.dogHits || 0) + 1;
-                  newState.audioEvents.push('BARK'); // Bruit chien
+                  newState.audioEvents.push('HIT_DOG'); // Modifié
                   if (newState.player.dogHits >= 3) newState.status = 'GAMEOVER';
               } else {
-                  newState.audioEvents.push('YELL'); // Bruit vieux
+                  newState.audioEvents.push('HIT_OLDMAN'); // Modifié
               }
 
               if (enemy.state === 'chasing') {

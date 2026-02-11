@@ -43,7 +43,7 @@ const App: React.FC = () => {
     setGameState({ ...initial, status: 'PLAYING' });
   };
 
-  // --- GESTION AUDIO ET ETATS DU JEU ---
+  // --- GESTION AUDIO ---
   useEffect(() => {
       if (gameState.status === 'PLAYING') {
           musicGen.current.play();
@@ -55,21 +55,24 @@ const App: React.FC = () => {
       if (gameState.audioEvents && gameState.audioEvents.length > 0) {
           gameState.audioEvents.forEach(event => {
               if (event === 'SPRAY') sfx.current.playSpray();
-              if (event === 'BARK') sfx.current.playBark();
-              if (event === 'YELL') sfx.current.playYell();
+              if (event === 'HIT_DOG') sfx.current.playDogHit();
+              if (event === 'HIT_OLDMAN') sfx.current.playOldManHit();
               if (event === 'WALL_DONE') sfx.current.playSuccess();
           });
       }
+  }, [gameState.status, gameState.audioEvents]);
 
-      // Timer de retour au menu pour les écrans de fin
+  // --- NAVIGATION / FIN DE PARTIE ---
+  useEffect(() => {
       let timeoutId: ReturnType<typeof setTimeout>;
+      // Ce useEffect ne dépend QUE de gameState.status, donc le timer ne sera pas reset à chaque frame
       if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
         timeoutId = setTimeout(() => {
           setGameState(createInitialState(currentConfig.current)); 
         }, 4000);
       }
       return () => { if (timeoutId) clearTimeout(timeoutId); };
-  }, [gameState.status, gameState.audioEvents]); // Dépendance à audioEvents pour déclencher l'effet
+  }, [gameState.status]);
 
   const loop = useCallback(() => {
     if (!inputManager.current) return;

@@ -45,73 +45,72 @@ export class SoundEffects {
     noise.start(t);
   }
 
-  public playBark() {
+  public playDogHit() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
+    
+    // Grognement / Morsure (Sawtooth Low)
+    const osc1 = this.ctx.createOscillator();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(150, t);
+    osc1.frequency.linearRampToValueAtTime(50, t + 0.2);
+    
+    const gain1 = this.ctx.createGain();
+    gain1.gain.setValueAtTime(0.4, t);
+    gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
 
-    // Oscillateur triangulaire pour le "Woof"
+    // Claquement (Triangle High Pitch)
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(800, t);
+    osc2.frequency.exponentialRampToValueAtTime(100, t + 0.1);
+    
+    const gain2 = this.ctx.createGain();
+    gain2.gain.setValueAtTime(0.3, t);
+    gain2.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+    osc1.connect(gain1);
+    gain1.connect(this.ctx.destination);
+    
+    osc2.connect(gain2);
+    gain2.connect(this.ctx.destination);
+
+    osc1.start(t); osc1.stop(t+0.2);
+    osc2.start(t); osc2.stop(t+0.1);
+  }
+
+  public playOldManHit() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    
+    // "Hé!" / Grunt (Square wave descendant)
     const osc = this.ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(300, t);
-    osc.frequency.exponentialRampToValueAtTime(50, t + 0.1);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(250, t);
+    osc.frequency.linearRampToValueAtTime(150, t + 0.3);
 
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(0.3, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    gain.gain.linearRampToValueAtTime(0, t + 0.3);
 
-    // Ajout d'un peu de bruit pour le mordant
-    const bufferSize = this.ctx.sampleRate * 0.1;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    // Impact Grave (Kick)
+    const kick = this.ctx.createOscillator();
+    kick.type = 'sine';
+    kick.frequency.setValueAtTime(100, t);
+    kick.frequency.exponentialRampToValueAtTime(40, t + 0.2);
     
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
-    const noiseGain = this.ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.2, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    const kickGain = this.ctx.createGain();
+    kickGain.gain.setValueAtTime(0.6, t);
+    kickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
 
     osc.connect(gain);
     gain.connect(this.ctx.destination);
-    noise.connect(noiseGain);
-    noiseGain.connect(this.ctx.destination);
+    
+    kick.connect(kickGain);
+    kickGain.connect(this.ctx.destination);
 
-    osc.start(t);
-    osc.stop(t + 0.1);
-    noise.start(t);
-  }
-
-  public playYell() {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-
-    // Onde en dent de scie pour le cri "Hé!"
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    // Variation de pitch descendante
-    osc.frequency.setValueAtTime(500, t);
-    osc.frequency.linearRampToValueAtTime(300, t + 0.3);
-
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.2, t + 0.05); // Attaque
-    gain.gain.linearRampToValueAtTime(0, t + 0.4); // Relâchement
-
-    // Vibrato
-    const lfo = this.ctx.createOscillator();
-    lfo.frequency.value = 10;
-    const lfoGain = this.ctx.createGain();
-    lfoGain.gain.value = 20;
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc.frequency);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    lfo.start(t);
-    osc.start(t);
-    osc.stop(t + 0.4);
-    lfo.stop(t + 0.4);
+    osc.start(t); osc.stop(t+0.3);
+    kick.start(t); kick.stop(t+0.2);
   }
 
   public playSuccess() {

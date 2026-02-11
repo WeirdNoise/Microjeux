@@ -6,11 +6,10 @@ import { GameState, GameConfig } from './types';
 import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
 
-// Import direct de l'asset audio
-import musicUrl from './assets/sounds/MusiqueDuJeu.mp3';
-
+// Utilisation de new URL pour résoudre le chemin de l'asset audio de manière robuste
+// Cela évite l'erreur "Failed to resolve module specifier" sur les fichiers non-JS
 const AUDIO_ASSETS = {
-    MUSIC: musicUrl
+    MUSIC: new URL('./assets/sounds/MusiqueDuJeu.mp3', import.meta.url).href
 };
 
 const DEFAULT_CONFIG: GameConfig = { 
@@ -36,7 +35,6 @@ const App: React.FC = () => {
     currentConfig.current = config;
     const initial = createInitialState(config);
     setGameState({ ...initial, status: 'PLAYING' });
-    // La gestion audio est maintenant réactive via useEffect
   };
 
   // --- GESTION AUDIO ET ETATS DU JEU ---

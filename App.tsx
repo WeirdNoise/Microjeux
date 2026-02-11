@@ -5,13 +5,7 @@ import MainMenu from './components/MainMenu';
 import { GameState, GameConfig } from './types';
 import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
-
-// Correction : Avec base: './' dans vite.config.ts, il faut utiliser un chemin relatif (sans slash au début)
-// pour que cela fonctionne en preview et dans Electron.
-// Structure attendue : dossier "public/sounds/MusiqueDuJeu.mp3" à la racine du projet.
-const AUDIO_ASSETS = {
-    MUSIC: 'sounds/MusiqueDuJeu.mp3'
-};
+import { MusicGenerator } from './services/MusicGenerator';
 
 const DEFAULT_CONFIG: GameConfig = { 
     wallCount: 5, 
@@ -26,25 +20,19 @@ const App: React.FC = () => {
   const inputManager = useRef<InputManager | null>(null);
   const requestRef = useRef<number>(0);
   
-  // --- AUDIO REFS ---
-  const musicRef = useRef<HTMLAudioElement | null>(null);
+  // --- AUDIO GENERATOR ---
+  const musicGen = useRef<MusicGenerator>(new MusicGenerator());
 
   // --- STATE TRACKING ---
   const currentConfig = useRef<GameConfig>(DEFAULT_CONFIG);
 
-  const startGame = (config: GameConfig) => {
-    // FIX IMPORTANTE : Lancer l'audio directement dans l'événement du clic (interaction utilisateur)
-    // pour contourner la politique "Audio play blocked".
-    if (musicRef.current) {
-        musicRef.current.currentTime = 0;
-        musicRef.current.volume = 0.5;
-        musicRef.current.loop = true;
-        const playPromise = musicRef.current.play();
-        if (playPromise !== undefined) {
-            playPromise.catch((e) => {
-                console.warn("Echec lecture audio au démarrage:", e);
-            });
-        }
+  const startGame = async (config: GameConfig) => {
+    // Initialisation du contexte audio sur interaction utilisateur
+    try {
+        await musicGen.current.init();
+        musicGen.current.play();
+    } catch (e) {
+        console.warn("Erreur audio:", e);
     }
 
     currentConfig.current = config;
@@ -54,27 +42,10 @@ const App: React.FC = () => {
 
   // --- GESTION AUDIO ET ETATS DU JEU ---
   useEffect(() => {
-      const audio = musicRef.current;
-      if (!audio) return;
-
       if (gameState.status === 'PLAYING') {
-          // Si l'audio n'a pas démarré via le clic (cas rare) ou a été mis en pause
-          if (audio.paused) {
-              const playPromise = audio.play();
-              if (playPromise !== undefined) {
-                  playPromise.catch((e) => {
-                      console.warn("Audio bloqué (attente interaction):", e);
-                  });
-              }
-          }
+          musicGen.current.play();
       } else {
-          // Arrêt de la musique (Menu, Victoire, Game Over)
-          audio.pause();
-          // On ne remet pas forcément à 0 ici pour éviter les coupures brusques si on réutilise, 
-          // mais pour ce jeu c'est mieux de reset.
-          if (gameState.status !== 'MENU') { 
-             audio.currentTime = 0; 
-          }
+          musicGen.current.stop();
       }
 
       // Timer de retour au menu pour les écrans de fin
@@ -106,21 +77,13 @@ const App: React.FC = () => {
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       if (inputManager.current) inputManager.current.cleanup();
+      musicGen.current.stop();
     };
   }, [loop]);
 
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden select-none flex items-center justify-center">
       
-      {/* --- AUDIO ELEMENT --- */}
-      {/* Ajout du type MIME pour aider le navigateur à identifier la source */}
-      <audio 
-        ref={musicRef} 
-        src={AUDIO_ASSETS.MUSIC} 
-        preload="auto"
-        loop
-      />
-
       {gameState.status === 'MENU' ? (
         <MainMenu onStart={startGame} initialConfig={currentConfig.current} />
       ) : (

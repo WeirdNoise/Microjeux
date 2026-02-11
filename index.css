@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Cabin Sketch', cursive;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background-color: black;
+  overflow: hidden;
+}

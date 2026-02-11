@@ -48,6 +48,48 @@ export class MusicGenerator {
     }
   }
 
+  // --- NOUVEAU : Jingle de Victoire ---
+  public playVictory() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    
+    // Fanfare rapide en Do Majeur (Arpège montant)
+    // C4, E4, G4, C5, E5, G5
+    const notes = [60, 64, 67, 72, 76, 79]; 
+    
+    notes.forEach((note, i) => {
+        // Accélération vers la fin
+        const time = t + i * 0.08;
+        const duration = i === notes.length - 1 ? 0.8 : 0.1; // La dernière note dure plus longtemps
+        this.playOscillator(note, time, 'square', duration, 0.1);
+        
+        // Harmonisation tierce (plus doux)
+        this.playOscillator(note - 12, time, 'triangle', duration, 0.1);
+    });
+  }
+
+  // --- NOUVEAU : Jingle Game Over ---
+  public playGameOver() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    // Descente chromatique triste / comique "Wah wah wah"
+    // F#4 -> F4 -> E4 -> Eb4
+    const notes = [66, 65, 64, 63];
+    
+    notes.forEach((note, i) => {
+        const time = t + i * 0.4;
+        const duration = 0.35;
+        const type = 'triangle'; // Son plus rond/triste
+        
+        // On joue la note principale
+        this.playOscillator(note, time, type, duration, 0.15);
+        
+        // On ajoute une dissonance légère pour l'effet "faux"
+        this.playOscillator(note - 6, time, type, duration, 0.1);
+    });
+  }
+
   private scheduler = () => {
     if (!this.isPlaying || !this.ctx) return;
 

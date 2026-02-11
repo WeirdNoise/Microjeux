@@ -43,15 +43,25 @@ const App: React.FC = () => {
     setGameState({ ...initial, status: 'PLAYING' });
   };
 
-  // --- GESTION AUDIO ---
+  // --- GESTION AUDIO (LOOP & JINGLES) ---
   useEffect(() => {
+      // Gestion de la boucle principale et des jingles de fin
       if (gameState.status === 'PLAYING') {
           musicGen.current.play();
+      } else if (gameState.status === 'VICTORY') {
+          musicGen.current.stop(); // Arrêter la musique de fond
+          musicGen.current.playVictory();
+      } else if (gameState.status === 'GAMEOVER') {
+          musicGen.current.stop(); // Arrêter la musique de fond
+          musicGen.current.playGameOver();
       } else {
           musicGen.current.stop();
       }
+  }, [gameState.status]);
 
-      // Lecture des bruitages (SFX) basés sur les événements
+  // --- GESTION AUDIO (SFX ONE-SHOT) ---
+  useEffect(() => {
+      // Lecture des bruitages (SFX) basés sur les événements instantanés
       if (gameState.audioEvents && gameState.audioEvents.length > 0) {
           gameState.audioEvents.forEach(event => {
               if (event === 'SPRAY') sfx.current.playSpray();
@@ -60,12 +70,12 @@ const App: React.FC = () => {
               if (event === 'WALL_DONE') sfx.current.playSuccess();
           });
       }
-  }, [gameState.status, gameState.audioEvents]);
+  }, [gameState.audioEvents]);
 
-  // --- NAVIGATION / FIN DE PARTIE ---
+  // --- NAVIGATION / TIMER FIN DE PARTIE ---
   useEffect(() => {
       let timeoutId: ReturnType<typeof setTimeout>;
-      // Ce useEffect ne dépend QUE de gameState.status, donc le timer ne sera pas reset à chaque frame
+      // Ce useEffect ne dépend QUE de gameState.status pour le reset
       if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
         timeoutId = setTimeout(() => {
           setGameState(createInitialState(currentConfig.current)); 
@@ -104,7 +114,6 @@ const App: React.FC = () => {
         <MainMenu onStart={startGame} initialConfig={currentConfig.current} />
       ) : (
         /* Conteneur Aspect Ratio 16:9 centré */
-        /* max-w-[177.78vh] signifie : la largeur ne dépasse pas 1.77 * la hauteur (format 16/9) */
         <div className="relative w-full max-w-[177.78vh] aspect-video shadow-[0_0_50px_rgba(255,255,255,0.05)] bg-[#111]">
           <GameCanvas gameState={gameState} />
           <UIOverlay gameState={gameState} />

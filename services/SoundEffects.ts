@@ -89,11 +89,13 @@ export class SoundEffects {
     // Filtre passe-bande pour le son "psshhh"
     const bandpass = this.ctx.createBiquadFilter();
     bandpass.type = 'bandpass';
-    bandpass.frequency.value = 2000;
+    // Variation aléatoire de la fréquence pour un effet plus naturel
+    bandpass.frequency.value = 2000 + (Math.random() * 600 - 300);
     bandpass.Q.value = 1;
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.05, t);
+    // Volume bien audible
+    gain.gain.setValueAtTime(0.2, t);
     gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
 
     noise.connect(bandpass);

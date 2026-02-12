@@ -25,6 +25,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
 
   const isGameOver = gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER';
 
+  // Sort walls by completion time to map them to the visual indicators in order
+  const taggedWalls = gameState.walls
+      .filter(w => w.isTagged)
+      .sort((a, b) => (a.completedTime || 0) - (b.completedTime || 0));
+
+  const now = Date.now();
+
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-8">
       
@@ -51,23 +58,43 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
           
           {/* Objective Tags */}
           <div className="flex gap-2 mt-1 justify-end">
-            {Array.from({length: gameState.config.wallCount}).map((_, i) => (
-                <div 
-                    key={i} 
-                    className={`w-6 h-6 border border-white ${i < gameState.player.tagsCompleted ? "bg-white shadow-[0_0_15px_white]" : "bg-black opacity-50"}`}
-                />
-            ))}
+            {Array.from({length: gameState.config.wallCount}).map((_, i) => {
+                const wallData = taggedWalls[i];
+                // Check if this specific tag was completed less than 2 seconds ago
+                const isRecentlyTagged = wallData && (now - (wallData.completedTime || 0) < 2000);
+                
+                let className = "w-6 h-6 border border-white transition-colors duration-200 ";
+                if (wallData) {
+                    if (isRecentlyTagged) {
+                        // Flash Red with Pulse Animation
+                        className += "bg-red-600 border-red-600 shadow-[0_0_15px_red] animate-pulse";
+                    } else {
+                        // Normal Completed
+                        className += "bg-white shadow-[0_0_15px_white]";
+                    }
+                } else {
+                    // Not yet tagged
+                    className += "bg-black opacity-50";
+                }
+
+                return <div key={i} className={className} />;
+            })}
           </div>
 
           {/* Dog Danger Indicators */}
           <div className="flex gap-2 mt-2 justify-end">
             {Array.from({length: maxDogHits}).map((_, i) => {
                 const isHit = i < dogHits;
+                // Check if this is the latest hit and it happened less than 2 seconds ago
+                const isRecentHit = isHit && (i === dogHits - 1) && (now - (gameState.player.lastHitTime || 0) < 2000);
+
+                const iconColor = isRecentHit ? "#DC2626" : "white"; // Red-600 or White
+
                 return (
-                    <div key={i} className="w-6 h-6 flex items-center justify-center">
+                    <div key={i} className={`w-6 h-6 flex items-center justify-center transition-transform ${isRecentHit ? 'scale-125 animate-pulse' : ''}`}>
                         {isHit ? (
-                             <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                                <path d="M12 2L2 22H22L12 2Z" stroke="white" strokeWidth="2" />
+                             <svg width="24" height="24" viewBox="0 0 24 24" fill={iconColor}>
+                                <path d="M12 2L2 22H22L12 2Z" stroke={iconColor} strokeWidth="2" />
                             </svg>
                         ) : (
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

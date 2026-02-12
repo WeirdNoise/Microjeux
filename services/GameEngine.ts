@@ -217,7 +217,8 @@ export const createInitialState = (config: GameConfig): GameState => {
       tagsCompleted: 0,
       stunTimer: 0,
       boostTimeLeft: PLAYER_MAX_BOOST_TIME,
-      dogHits: 0
+      dogHits: 0,
+      lastHitTime: 0
     },
     walls,
     enemies,
@@ -344,10 +345,13 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           });
        }
        if (wall.tagProgress >= TAG_TIME_REQUIRED) {
-          wall.isTagged = true;
-          newState.player.tagsCompleted++;
-          newState.screenShake = 10;
-          newState.audioEvents.push('WALL_DONE'); // Son de succès
+          if (!wall.isTagged) {
+              wall.isTagged = true;
+              wall.completedTime = Date.now();
+              newState.player.tagsCompleted++;
+              newState.screenShake = 10;
+              newState.audioEvents.push('WALL_DONE'); // Son de succès
+          }
        }
     }
   }
@@ -474,10 +478,11 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               newState.screenShake = 5;
               if (enemy.type === EntityType.DOG) {
                   newState.player.dogHits = (newState.player.dogHits || 0) + 1;
-                  newState.audioEvents.push('HIT_DOG'); // Modifié
+                  newState.player.lastHitTime = Date.now(); // Record hit time
+                  newState.audioEvents.push('HIT_DOG'); 
                   if (newState.player.dogHits >= 3) newState.status = 'GAMEOVER';
               } else {
-                  newState.audioEvents.push('HIT_OLDMAN'); // Modifié
+                  newState.audioEvents.push('HIT_OLDMAN'); 
               }
 
               if (enemy.state === 'chasing') {

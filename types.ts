@@ -42,6 +42,7 @@ export interface Wall {
   height: number;
   isTagged: boolean;
   tagProgress: number; // 0 to 100
+  completedTime?: number; // Timestamp when tagged
 }
 
 export interface Enemy {
@@ -69,6 +70,7 @@ export interface Player {
   stunTimer: number; // New property: > 0 means cannot tag
   boostTimeLeft: number; // In seconds
   dogHits: number; // Count of times hit by a dog
+  lastHitTime?: number; // Timestamp of last hit
 }
 
 export interface GameConfig {

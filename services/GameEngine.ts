@@ -504,7 +504,10 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   // Timer Logic
   const prevTime = newState.timeLeft;
   newState.timeLeft -= 1/60; 
-  if (newState.timeLeft <= 0) newState.status = 'GAMEOVER';
+  if (newState.timeLeft <= 0) {
+      newState.timeLeft = 0; // Lock timer at 0
+      newState.status = 'GAMEOVER';
+  }
 
   // Check for countdown tick
   if (newState.status === 'PLAYING') {

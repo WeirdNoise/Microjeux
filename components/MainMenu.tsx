@@ -7,6 +7,7 @@ interface MainMenuProps {
 }
 
 const RIDDLES = [
+  // --- ÉNIGMES TEXTUELLES ---
   {
     question: "Je suis grand quand je suis jeune et petit quand je suis vieux. Qui suis-je ?",
     options: ["Un arbre", "Une bougie", "Un éléphant", "Un nuage"],
@@ -58,24 +59,65 @@ const RIDDLES = [
     correct: 1
   },
   {
-    question: "Si tu me dis mon nom, je me brise. Qui suis-je ?",
-    options: ["Le silence", "Le verre", "La glace", "Une promesse"],
+    question: "Je suis noir quand je suis propre et blanc quand je suis sale. Qui suis-je ?",
+    options: ["Un tableau noir", "Un pingouin", "Le charbon", "Un zèbre"],
     correct: 0
-  },
-  {
-    question: "Je traverse les villes et les champs mais je ne bouge jamais. Qui suis-je ?",
-    options: ["La route", "La rivière", "Le vent", "Le train"],
-    correct: 0
-  },
-  {
-    question: "Qu'est-ce qui a un œil mais ne peut pas voir ?",
-    options: ["Un cyclope", "Une aiguille", "Un cyclone", "Une pomme de terre"],
-    correct: 1
   },
   {
     question: "J'ai des villes, mais pas de maisons. J'ai des montagnes, mais pas d'arbres. Qui suis-je ?",
     options: ["Une carte", "Un rêve", "Le désert", "Une planète"],
     correct: 0
+  },
+  // --- MATHÉMATIQUES (Niveau Primaire) ---
+  {
+    question: "Combien font 7 + 6 ?",
+    options: ["11", "12", "13", "14"],
+    correct: 2
+  },
+  {
+    question: "Quel est le résultat de 3 x 5 ?",
+    options: ["10", "15", "20", "8"],
+    correct: 1
+  },
+  {
+    question: "Combien font 20 - 5 ?",
+    options: ["10", "25", "15", "12"],
+    correct: 2
+  },
+  {
+    question: "J'ai 10 billes, j'en perds 3. Combien m'en reste-t-il ?",
+    options: ["7", "8", "13", "6"],
+    correct: 0
+  },
+  {
+    question: "Combien font 4 x 4 ?",
+    options: ["8", "12", "16", "20"],
+    correct: 2
+  },
+  {
+    question: "Quel est le double de 9 ?",
+    options: ["16", "18", "19", "20"],
+    correct: 1
+  },
+  {
+    question: "Combien font 10 + 10 + 10 ?",
+    options: ["20", "30", "40", "100"],
+    correct: 1
+  },
+  {
+    question: "Combien font 8 + 9 ?",
+    options: ["15", "16", "17", "18"],
+    correct: 2
+  },
+  {
+    question: "Quel est le résultat de 6 x 2 ?",
+    options: ["10", "12", "8", "14"],
+    correct: 1
+  },
+  {
+    question: "Combien font 50 - 10 ?",
+    options: ["30", "40", "60", "20"],
+    correct: 1
   }
 ];
 
@@ -155,7 +197,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart }) => {
       {isRiddleOpen && (
         <div className="absolute inset-0 bg-black/95 flex items-center justify-center animate-in fade-in duration-200">
            <div className={`border-4 border-white p-12 max-w-4xl w-full text-center shadow-[0_0_50px_rgba(255,255,255,0.1)] relative ${isWrongAnim ? 'animate-shake' : ''}`}>
-              <h2 className="text-3xl font-bold tracking-widest mb-2 text-gray-400">POUR JOUER, RÉPONDS À L'ÉNIGME</h2>
+              <h2 className="text-3xl font-bold tracking-widest mb-2 text-gray-400">POUR JOUER, RÉPONDS À LA QUESTION</h2>
               <div className="w-full h-1 bg-white mb-8"></div>
               
               <h3 className="text-4xl font-bold mb-12 leading-tight">

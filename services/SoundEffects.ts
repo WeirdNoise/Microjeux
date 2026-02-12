@@ -109,25 +109,34 @@ export class SoundEffects {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     
-    // Grognement / Morsure (Sawtooth Low)
+    // 1. Grognement/Aboiement (Sawtooth plus agressive)
     const osc1 = this.ctx.createOscillator();
     osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(150, t);
-    osc1.frequency.linearRampToValueAtTime(50, t + 0.2);
+    osc1.frequency.setValueAtTime(120, t);
+    osc1.frequency.linearRampToValueAtTime(80, t + 0.15);
     
     const gain1 = this.ctx.createGain();
-    gain1.gain.setValueAtTime(0.4, t);
+    gain1.gain.setValueAtTime(0.6, t); // Plus fort
     gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
 
-    // Claquement (Triangle High Pitch)
+    // 2. Claquement/Morsure (High Pitch Impact)
     const osc2 = this.ctx.createOscillator();
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(800, t);
+    osc2.type = 'square'; // Square coupe mieux le mix
+    osc2.frequency.setValueAtTime(600, t);
     osc2.frequency.exponentialRampToValueAtTime(100, t + 0.1);
     
     const gain2 = this.ctx.createGain();
-    gain2.gain.setValueAtTime(0.3, t);
+    gain2.gain.setValueAtTime(0.5, t);
     gain2.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+    // 3. Impact sourd (Kick)
+    const osc3 = this.ctx.createOscillator();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(150, t);
+    osc3.frequency.exponentialRampToValueAtTime(50, t + 0.1);
+    const gain3 = this.ctx.createGain();
+    gain3.gain.setValueAtTime(0.8, t);
+    gain3.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
 
     osc1.connect(gain1);
     gain1.connect(this.ctx.destination);
@@ -135,8 +144,12 @@ export class SoundEffects {
     osc2.connect(gain2);
     gain2.connect(this.ctx.destination);
 
+    osc3.connect(gain3);
+    gain3.connect(this.ctx.destination);
+
     osc1.start(t); osc1.stop(t+0.2);
     osc2.start(t); osc2.stop(t+0.1);
+    osc3.start(t); osc3.stop(t+0.2);
   }
 
   public playOldManHit() {

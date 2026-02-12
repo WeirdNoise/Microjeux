@@ -197,4 +197,25 @@ export class SoundEffects {
         osc.stop(t + i * 0.05 + 0.4);
     });
   }
+
+  public playHeartbeat() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    
+    // Impact grave "DOUM"
+    // Sinus qui descend en fréquence rapidement
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(100, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.7, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
 }

@@ -24,6 +24,12 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
   const maxDogHits = 3;
 
   const isGameOver = gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER';
+  const isEmergency = gameState.status === 'PLAYING' && gameState.timeLeft <= 10;
+  
+  const mainColorClass = isEmergency ? "text-red-600 border-red-600" : "text-white border-white";
+  const mainBgClass = isEmergency ? "bg-red-600" : "bg-white";
+  const mainShadowClass = isEmergency ? "shadow-[0_0_15px_red]" : "shadow-[0_0_15px_white]";
+  const mainStrokeColor = isEmergency ? "#DC2626" : "white";
 
   // Sort walls by completion time to map them to the visual indicators in order
   const taggedWalls = gameState.walls
@@ -41,17 +47,17 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
       >
           
           {/* Time */}
-          <div className="text-5xl tracking-tighter opacity-80 mb-1" style={{ textShadow: "0 0 10px white" }}>
+          <div className={`text-5xl tracking-tighter opacity-80 mb-1 ${isEmergency ? 'text-red-600 animate-pulse' : 'text-white'}`} style={{ textShadow: isEmergency ? "0 0 10px red" : "0 0 10px white" }}>
             {formatTime(gameState.timeLeft)}
           </div>
 
           {/* Boost Bar */}
           <div 
-            className="h-4 bg-gray-900 border border-white"
+            className={`h-4 bg-gray-900 border ${isEmergency ? 'border-red-600' : 'border-white'}`}
             style={{ width: `${squaresRowWidth}px` }}
           >
               <div 
-                className="h-full bg-white shadow-[0_0_15px_white]" 
+                className={`h-full ${mainBgClass} ${mainShadowClass}`} 
                 style={{ width: `${boostPercentage}%` }}
               />
           </div>
@@ -63,14 +69,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
                 // Check if this specific tag was completed less than 2 seconds ago
                 const isRecentlyTagged = wallData && (now - (wallData.completedTime || 0) < 2000);
                 
-                let className = "w-6 h-6 border border-white transition-colors duration-200 ";
+                let className = `w-6 h-6 border transition-colors duration-200 ${isEmergency ? 'border-red-600' : 'border-white'} `;
                 if (wallData) {
                     if (isRecentlyTagged) {
                         // Flash Red with Pulse Animation
                         className += "bg-red-600 border-red-600 shadow-[0_0_15px_red] animate-pulse";
                     } else {
-                        // Normal Completed
-                        className += "bg-white shadow-[0_0_15px_white]";
+                        // Normal Completed (Red in emergency, white otherwise)
+                        className += `${mainBgClass} ${mainShadowClass}`;
                     }
                 } else {
                     // Not yet tagged
@@ -88,7 +94,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
                 // Check if this is the latest hit and it happened less than 2 seconds ago
                 const isRecentHit = isHit && (i === dogHits - 1) && (now - (gameState.player.lastHitTime || 0) < 2000);
 
-                const iconColor = isRecentHit ? "#DC2626" : "white"; // Red-600 or White
+                const iconColor = isRecentHit ? "#DC2626" : mainStrokeColor; 
 
                 return (
                     <div key={i} className={`w-6 h-6 flex items-center justify-center transition-transform ${isRecentHit ? 'scale-125 animate-pulse' : ''}`}>
@@ -98,7 +104,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
                             </svg>
                         ) : (
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <path d="M12 2L2 22H22L12 2Z" stroke="white" strokeWidth="2" strokeOpacity="0.5"/>
+                                <path d="M12 2L2 22H22L12 2Z" stroke={mainStrokeColor} strokeWidth="2" strokeOpacity="0.5"/>
                             </svg>
                         )}
                     </div>

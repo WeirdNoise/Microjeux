@@ -38,9 +38,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     ctx.fillStyle = "#111111"; 
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Determine Game Opacity
+    // Determine Game Opacity and Color Mode
     const isGameOver = gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER';
     const contentOpacity = isGameOver ? 0.2 : 1.0;
+    
+    // Emergency Mode (Last 10 seconds)
+    const isEmergency = gameState.status === 'PLAYING' && gameState.timeLeft <= 10;
+    const primaryColor = isEmergency ? "#FF0000" : "white";
 
     const shakeX = (Math.random() - 0.5) * gameState.screenShake;
     const shakeY = (Math.random() - 0.5) * gameState.screenShake;
@@ -54,7 +58,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     const drawRoughRect = (x: number, y: number, w: number, h: number, filled: boolean = false) => {
         ctx.save();
         ctx.lineWidth = 3;
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = primaryColor;
         ctx.beginPath();
         const jitter = () => (Math.random() - 0.5) * 2;
         ctx.moveTo(x + jitter(), y + jitter());
@@ -64,7 +68,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.closePath();
         ctx.stroke();
         if (filled) {
-            ctx.fillStyle = "rgba(255, 255, 255, 0.15)"; 
+            ctx.fillStyle = isEmergency ? "rgba(255, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"; 
             ctx.fill();
         }
         ctx.restore();
@@ -75,7 +79,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.beginPath();
         ctx.rect(wall.x, wall.y, wall.width, wall.height);
         ctx.clip();
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 2;
         const seed = wall.x * 1000 + wall.y;
         const pseudoRandom = (offset: number) => {
@@ -106,7 +110,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.lineTo(w/2, h/2);
         ctx.lineTo(-w/2, h/2);
         ctx.closePath();
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 3;
         ctx.stroke();
         ctx.clip();
@@ -124,7 +128,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     const drawPlayerHatched = (x: number, y: number, r: number) => {
         ctx.save();
         ctx.translate(x, y);
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -148,7 +152,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     const drawOldManSketch = (x: number, y: number, w: number, h: number) => {
         ctx.save();
         ctx.translate(x, y);
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 4;
         const jit = () => (Math.random() - 0.5) * 4;
         ctx.beginPath();
@@ -181,7 +185,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
             drawRoughRect(wall.x, wall.y, wall.width, wall.height, true);
             if (wall.tagProgress > 0) {
                 ctx.save();
-                ctx.fillStyle = "white";
+                ctx.fillStyle = primaryColor;
                 const h = (wall.tagProgress / TAG_TIME_REQUIRED) * wall.height;
                 ctx.fillRect(wall.x, wall.y + wall.height - h, wall.width, h);
                 ctx.restore();
@@ -205,7 +209,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     }
 
     // Particles
-    ctx.fillStyle = "white";
+    ctx.fillStyle = primaryColor;
     gameState.particles.forEach(p => {
         ctx.globalAlpha = (p.life / 20) * contentOpacity; // Combine particles alpha with game opacity
         ctx.fillRect(p.x, p.y, 3, 3);
@@ -229,7 +233,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     // Nouvelle fonction pour le cadre global (plus épais, double trait)
     const drawHandDrawnBorder = () => {
         ctx.save();
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 4;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";

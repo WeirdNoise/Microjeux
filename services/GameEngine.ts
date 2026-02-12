@@ -500,8 +500,20 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   if (newState.screenShake > 0) newState.screenShake *= 0.9;
   if (newState.screenShake < 0.5) newState.screenShake = 0;
   if (newState.player.tagsCompleted >= newState.config.wallCount) newState.status = 'VICTORY';
+  
+  // Timer Logic
+  const prevTime = newState.timeLeft;
   newState.timeLeft -= 1/60; 
   if (newState.timeLeft <= 0) newState.status = 'GAMEOVER';
+
+  // Check for countdown tick
+  if (newState.status === 'PLAYING') {
+      const prevInt = Math.ceil(prevTime);
+      const newInt = Math.ceil(newState.timeLeft);
+      if (newInt <= 10 && newInt < prevInt && newInt > 0) {
+          newState.audioEvents.push('COUNTDOWN');
+      }
+  }
 
   return newState;
 };

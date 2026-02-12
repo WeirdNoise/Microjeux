@@ -79,6 +79,7 @@ const App: React.FC = () => {
               if (event === 'HIT_DOG') sfx.current.playDogHit();
               if (event === 'HIT_OLDMAN') sfx.current.playOldManHit();
               if (event === 'WALL_DONE') sfx.current.playSuccess();
+              if (event === 'COUNTDOWN') sfx.current.playHeartbeat();
           });
       }
   }, [gameState.audioEvents, gameState.player.isBoosting, gameState.status]);

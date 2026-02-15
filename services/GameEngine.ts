@@ -224,7 +224,8 @@ export const createInitialState = (config: GameConfig): GameState => {
     enemies,
     particles: [],
     screenShake: 0,
-    audioEvents: [] // Init audio
+    audioEvents: [],
+    lastMidiDebug: "Waiting..."
   };
 };
 
@@ -232,7 +233,12 @@ export const createInitialState = (config: GameConfig): GameState => {
 
 export const updateGameState = (state: GameState, input: InputState): GameState => {
   // Reset audio events for this frame
-  const newState = { ...state, player: { ...state.player }, audioEvents: [] as string[] };
+  const newState = { 
+    ...state, 
+    player: { ...state.player }, 
+    audioEvents: [] as string[],
+    lastMidiDebug: input.debugMidi || state.lastMidiDebug
+  };
 
   // Update Particles always (for active NDI even in menu)
   newState.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; });

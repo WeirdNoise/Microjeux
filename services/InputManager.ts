@@ -13,6 +13,7 @@ export class InputManager {
   };
 
   private prevMidiTag = false; // To detect MIDI note rising edge
+  private lastDebugMessage: string = "MIDI: Waiting...";
 
   constructor() {
     window.addEventListener('keydown', this.handleKeyDown);
@@ -38,16 +39,21 @@ export class InputManager {
           }
       };
       console.log("MIDI Connected");
+      this.lastDebugMessage = "MIDI: Connected";
   }
 
   private onMIDIFailure = () => {
       console.warn("Could not access your MIDI devices.");
+      this.lastDebugMessage = "MIDI: Access Failed";
   }
 
   private onMIDIMessage = (message: any) => {
       const [command, note, velocity] = message.data;
       const channel = command & 0xf; // 0-15
       const type = command & 0xf0;
+
+      // Update Debug String
+      this.lastDebugMessage = `CH:${channel + 1} | CMD:${type} | NOTE:${note} | VAL:${velocity}`;
 
       // Gestion Encodeurs Infinis (Relatif)
       // Incrément (< 64) vs Décrément (> 64)
@@ -180,7 +186,8 @@ export class InputManager {
               axisX: this.midiState.oldMan.x,
               axisY: this.midiState.oldMan.y
           }
-      }
+      },
+      debugMidi: this.lastDebugMessage
     };
 
     // Clear "Just Pressed" keys for next frame

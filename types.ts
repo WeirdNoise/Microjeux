@@ -31,7 +31,10 @@ export interface InputState {
       barrier: EntityInput;
       dog: EntityInput;
       oldMan: EntityInput;
-  }
+  };
+  
+  // Debug
+  debugMidi?: string;
 }
 
 export interface Wall {
@@ -90,6 +93,7 @@ export interface GameState {
   particles: Particle[];
   screenShake: number;
   audioEvents: string[]; // Queue of one-shot audio events to play this frame
+  lastMidiDebug?: string; // Last raw MIDI message for debug
 }
 
 export interface Particle {

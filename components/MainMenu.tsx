@@ -235,6 +235,9 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
   const [currentRiddle, setCurrentRiddle] = useState(RIDDLES[0]);
   const [isWrongAnim, setIsWrongAnim] = useState(false);
 
+  // Enable Button State
+  const [isEnabled, setIsEnabled] = useState(false);
+
   // --- CURSOR LOGIC ---
   const cursorRef = useRef<HTMLDivElement>(null);
   const cursorPos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
@@ -343,6 +346,17 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
       }
   };
 
+  const handleEnable = () => {
+      setIsEnabled(true);
+      // Tentative de reprise du contexte audio si bloqué
+      // Les navigateurs modernes demandent un geste utilisateur
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+          const ctx = new AudioContext();
+          ctx.resume().then(() => ctx.close());
+      }
+  };
+
   // Icônes SVG simples
   const GearIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -363,6 +377,14 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white cursor-none">
       
+      {/* --- ENABLE BUTTON (Top Left) --- */}
+      <button 
+        onClick={handleEnable}
+        className={`absolute top-4 left-4 border-2 px-4 py-2 font-bold text-xs tracking-widest z-[2000] cursor-none transition-colors ${isEnabled ? 'border-green-500 text-green-500' : 'border-red-500 text-red-500 bg-red-900/20 animate-pulse'}`}
+      >
+        {isEnabled ? 'SYSTEM READY' : 'CLICK TO ENABLE'}
+      </button>
+
       {/* --- VIRTUAL CURSOR --- */}
       <div 
         ref={cursorRef}

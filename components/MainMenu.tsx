@@ -167,7 +167,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart }) => {
   );
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white">
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 text-white backdrop-blur-sm">
       
       {/* --- ÉCRAN ACCUEIL --- */}
       <div className={`flex flex-col items-center transition-opacity duration-300 ${isSettingsOpen || isRiddleOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>

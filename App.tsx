@@ -7,6 +7,7 @@ import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
 import { MusicGenerator } from './services/MusicGenerator';
 import { SoundEffects } from './services/SoundEffects';
+import { GAME_WIDTH, GAME_HEIGHT } from './constants';
 
 const DEFAULT_CONFIG: GameConfig = { 
     wallCount: 5, 
@@ -28,8 +29,24 @@ const App: React.FC = () => {
   // --- STATE TRACKING ---
   const currentConfig = useRef<GameConfig>(DEFAULT_CONFIG);
 
+  // --- SCALING FOR PREVIEW ---
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const scaleX = window.innerWidth / GAME_WIDTH;
+      const scaleY = window.innerHeight / GAME_HEIGHT;
+      const newScale = Math.min(scaleX, scaleY) * 0.95; 
+      setScale(newScale);
+    };
+
+    window.addEventListener('resize', handleResize);
+    setTimeout(handleResize, 50);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const startGame = async (config: GameConfig) => {
-    // Initialisation du contexte audio sur interaction utilisateur
     try {
         await musicGen.current.init();
         await sfx.current.resume();
@@ -43,20 +60,17 @@ const App: React.FC = () => {
     setGameState({ ...initial, status: 'PLAYING' });
   };
 
-  // --- GESTION AUDIO (LOOP & JINGLES) ---
+  // --- GESTION AUDIO ---
   useEffect(() => {
-      // Gestion de la boucle principale et des jingles de fin
       if (gameState.status === 'PLAYING') {
           musicGen.current.play();
       } else if (gameState.status === 'VICTORY') {
-          musicGen.current.stop(); // Arrêter la musique de fond
+          musicGen.current.stop(); 
           musicGen.current.playVictory();
-          // Couper le boost si on gagne
           sfx.current.setBoostState(false);
       } else if (gameState.status === 'GAMEOVER') {
-          musicGen.current.stop(); // Arrêter la musique de fond
+          musicGen.current.stop(); 
           musicGen.current.playGameOver();
-          // Couper le boost si on perd
           sfx.current.setBoostState(false);
       } else {
           musicGen.current.stop();
@@ -64,15 +78,11 @@ const App: React.FC = () => {
       }
   }, [gameState.status]);
 
-  // --- GESTION AUDIO (SFX ONE-SHOT & BOOST CONTINU) ---
   useEffect(() => {
-      // 1. Gestion du son continu de boost
-      // On le met à jour à chaque frame où l'état de boost change
       if (gameState.status === 'PLAYING') {
           sfx.current.setBoostState(gameState.player.isBoosting);
       }
 
-      // 2. Lecture des bruitages (SFX) basés sur les événements instantanés
       if (gameState.audioEvents && gameState.audioEvents.length > 0) {
           gameState.audioEvents.forEach(event => {
               if (event === 'SPRAY') sfx.current.playSpray();
@@ -84,10 +94,9 @@ const App: React.FC = () => {
       }
   }, [gameState.audioEvents, gameState.player.isBoosting, gameState.status]);
 
-  // --- NAVIGATION / TIMER FIN DE PARTIE ---
+  // --- NAVIGATION ---
   useEffect(() => {
       let timeoutId: ReturnType<typeof setTimeout>;
-      // Ce useEffect ne dépend QUE de gameState.status pour le reset
       if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
         timeoutId = setTimeout(() => {
           setGameState(createInitialState(currentConfig.current)); 
@@ -100,7 +109,7 @@ const App: React.FC = () => {
     if (!inputManager.current) return;
 
     setGameState(prevState => {
-      if (prevState.status === 'MENU') return prevState;
+      // On met à jour l'état même en MENU pour les particules
       const input = inputManager.current!.getInput();
       return updateGameState(prevState, input);
     });
@@ -120,17 +129,31 @@ const App: React.FC = () => {
   }, [loop]);
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden select-none flex items-center justify-center">
-      
-      {gameState.status === 'MENU' ? (
-        <MainMenu onStart={startGame} initialConfig={currentConfig.current} />
-      ) : (
-        /* Conteneur Aspect Ratio 16:9 centré */
-        <div className="relative w-full max-w-[177.78vh] aspect-video shadow-[0_0_50px_rgba(255,255,255,0.05)] bg-[#111]">
-          <GameCanvas gameState={gameState} />
-          <UIOverlay gameState={gameState} />
-        </div>
-      )}
+    <div className="w-full h-full bg-[#050505] overflow-hidden relative">
+      <div 
+        style={{
+          width: `${GAME_WIDTH}px`,
+          height: `${GAME_HEIGHT}px`,
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: `translate(-50%, -50%) scale(${scale})`,
+          transformOrigin: 'center center',
+          boxShadow: '0 0 100px rgba(0,0,0,0.8)'
+        }}
+        className="bg-[#111] overflow-hidden"
+      >
+        {/* Render GameCanvas always for background/particles/borders */}
+        <GameCanvas gameState={gameState} />
+        
+        {/* Render UI Overlay always (it handles menu visibility internally) */}
+        <UIOverlay gameState={gameState} />
+
+        {/* Menu Overlay */}
+        {gameState.status === 'MENU' && (
+          <MainMenu onStart={startGame} initialConfig={currentConfig.current} />
+        )}
+      </div>
     </div>
   );
 };

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Jeu minimaliste urbain pour vidéoprojection",
   "main": "electron/main.js",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -240,6 +240,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
   const cursorPos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const requestRef = useRef<number>(0);
   const lastClickTime = useRef(0);
+  const hoveredElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
       // Animation loop pour le curseur
@@ -263,7 +264,37 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                   cursorRef.current.style.transform = `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px)`;
               }
 
-              // Handle Click (Bouton Blanc / actionPrimaryTrigger)
+              // --- SIMULATION DE SURVOL (HOVER) ---
+              // On cache temporairement le curseur pour voir ce qu'il y a dessous
+              if (cursorRef.current) cursorRef.current.style.display = 'none';
+              const elementBelow = document.elementFromPoint(cursorPos.current.x, cursorPos.current.y);
+              if (cursorRef.current) cursorRef.current.style.display = 'block';
+
+              let clickable: HTMLElement | null = null;
+              if (elementBelow) {
+                  // On cherche un bouton ou un élément interactif
+                  clickable = elementBelow.closest('button');
+              }
+
+              // Gestion du focus pour simuler le hover
+              if (clickable) {
+                  if (clickable !== hoveredElementRef.current) {
+                      clickable.focus();
+                      hoveredElementRef.current = clickable;
+                  }
+              } else {
+                  if (hoveredElementRef.current) {
+                      hoveredElementRef.current.blur();
+                      hoveredElementRef.current = null;
+                  }
+                  // Si le focus est resté sur un élément alors qu'on n'est plus dessus, on blur
+                  if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+                      document.activeElement.blur();
+                  }
+              }
+
+
+              // --- SIMULATION DU CLIC (Bouton Blanc / actionPrimaryTrigger) ---
               // Anti-rebond basique (200ms)
               const now = Date.now();
               if (input.actionPrimaryTrigger && (now - lastClickTime.current > 200)) {
@@ -271,23 +302,15 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                   
                   // Visual Click Feedback
                   if (cursorRef.current) {
-                      cursorRef.current.classList.add('scale-75', 'bg-red-500');
+                      cursorRef.current.classList.add('scale-75', 'bg-white');
                       setTimeout(() => {
-                          if (cursorRef.current) cursorRef.current.classList.remove('scale-75', 'bg-red-500');
+                          if (cursorRef.current) cursorRef.current.classList.remove('scale-75', 'bg-white');
                       }, 100);
                   }
 
-                  // Trigger click on element below cursor
-                  // On cache temporairement le curseur pour voir ce qu'il y a dessous
-                  if (cursorRef.current) cursorRef.current.style.display = 'none';
-                  const element = document.elementFromPoint(cursorPos.current.x, cursorPos.current.y);
-                  if (cursorRef.current) cursorRef.current.style.display = 'block';
-
-                  if (element) {
-                      const clickable = element.closest('button'); // On cherche le bouton parent ou l'élément lui-même
-                      if (clickable && clickable instanceof HTMLElement) {
-                          clickable.click();
-                      }
+                  // Click sur l'élément survolé
+                  if (clickable) {
+                      clickable.click();
                   }
               }
           }
@@ -335,16 +358,18 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
     </svg>
   );
 
+  // Note: On ajoute `focus:bg-white focus:text-black focus:outline-none` aux boutons pour qu'ils réagissent au "survol" du curseur virtuel.
+
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white cursor-none">
       
       {/* --- VIRTUAL CURSOR --- */}
       <div 
         ref={cursorRef}
-        className="fixed top-0 left-0 w-8 h-8 pointer-events-none z-[10000] rounded-full border-2 border-white bg-transparent transition-transform duration-75 flex items-center justify-center mix-blend-difference"
-        style={{ transform: `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px)`, marginLeft: '-16px', marginTop: '-16px' }}
+        className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[10000] rounded-full border-4 border-red-600 bg-red-600/30 transition-transform duration-75 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.8)]"
+        style={{ transform: `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px)`, marginLeft: '-24px', marginTop: '-24px' }}
       >
-          <div className="w-1 h-1 bg-white rounded-full"></div>
+          <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_5px_white]"></div>
       </div>
 
       {/* --- ÉCRAN ACCUEIL --- */}
@@ -355,7 +380,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           
           <button 
               onClick={handleStartRequest}
-              className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black transition-colors duration-200 uppercase tracking-widest cursor-none"
+              className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none transition-colors duration-200 uppercase tracking-widest cursor-none"
           >
               COLORIE TA VILLE
           </button>
@@ -365,7 +390,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
       {!isSettingsOpen && !isRiddleOpen && (
         <button 
           onClick={() => setIsSettingsOpen(true)}
-          className="absolute top-8 right-8 p-4 border border-transparent hover:border-white rounded-full transition-all text-gray-500 hover:text-white cursor-none"
+          className="absolute top-8 right-8 p-4 border border-transparent hover:border-white focus:border-white focus:outline-none rounded-full transition-all text-gray-500 hover:text-white focus:text-white cursor-none"
         >
           <GearIcon />
         </button>
@@ -387,7 +412,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                       <button 
                         key={idx}
                         onClick={() => checkAnswer(idx)}
-                        className="text-2xl border-2 border-gray-500 py-6 px-4 hover:border-white hover:bg-white hover:text-black transition-all cursor-none"
+                        className="text-2xl border-2 border-gray-500 py-6 px-4 hover:border-white hover:bg-white hover:text-black focus:border-white focus:bg-white focus:text-black focus:outline-none transition-all cursor-none"
                       >
                           {option}
                       </button>
@@ -396,7 +421,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
 
               <button 
                 onClick={() => setIsRiddleOpen(false)}
-                className="mt-12 text-gray-500 hover:text-white underline cursor-none"
+                className="mt-12 text-gray-500 hover:text-white focus:text-white focus:outline-none underline cursor-none"
               >
                 Retour
               </button>
@@ -423,7 +448,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
             {/* Header Settings */}
             <div className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
               <h2 className="text-4xl font-bold tracking-widest">PARAMÈTRES DE MISSION</h2>
-              <button onClick={() => setIsSettingsOpen(false)} className="hover:text-gray-400 cursor-none">
+              <button onClick={() => setIsSettingsOpen(false)} className="hover:text-gray-400 focus:text-white focus:outline-none cursor-none">
                 <CloseIcon />
               </button>
             </div>
@@ -433,33 +458,33 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                 <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">MURS</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('wallCount', Math.max(1, config.wallCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">-</button>
+                        <button onClick={() => handleChange('wallCount', Math.max(1, config.wallCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
                         <span className="text-4xl font-bold w-12">{config.wallCount}</span>
-                        <button onClick={() => handleChange('wallCount', Math.min(10, config.wallCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">+</button>
+                        <button onClick={() => handleChange('wallCount', Math.min(10, config.wallCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
                     </div>
                 </div>
                 <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">CHIENS</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('dogCount', Math.max(0, config.dogCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">-</button>
+                        <button onClick={() => handleChange('dogCount', Math.max(0, config.dogCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
                         <span className="text-4xl font-bold w-12">{config.dogCount}</span>
-                        <button onClick={() => handleChange('dogCount', Math.min(2, config.dogCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">+</button>
+                        <button onClick={() => handleChange('dogCount', Math.min(2, config.dogCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
                     </div>
                 </div>
                 <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">VIEUX</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('oldManCount', Math.max(1, config.oldManCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">-</button>
+                        <button onClick={() => handleChange('oldManCount', Math.max(1, config.oldManCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
                         <span className="text-4xl font-bold w-12">{config.oldManCount}</span>
-                        <button onClick={() => handleChange('oldManCount', Math.min(10, config.oldManCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">+</button>
+                        <button onClick={() => handleChange('oldManCount', Math.min(10, config.oldManCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
                     </div>
                 </div>
                  <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">TEMPS (s)</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('gameDuration', Math.max(30, config.gameDuration - 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">-</button>
+                        <button onClick={() => handleChange('gameDuration', Math.max(30, config.gameDuration - 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
                         <span className="text-4xl font-bold w-20">{config.gameDuration}</span>
-                        <button onClick={() => handleChange('gameDuration', Math.min(300, config.gameDuration + 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black cursor-none">+</button>
+                        <button onClick={() => handleChange('gameDuration', Math.min(300, config.gameDuration + 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
                     </div>
                 </div>
             </div>

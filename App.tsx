@@ -5,8 +5,7 @@ import MainMenu from './components/MainMenu';
 import { GameState, GameConfig } from './types';
 import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
-import { MusicGenerator } from './services/MusicGenerator';
-import { AudioManager } from './services/AudioManager'; // Import de la nouvelle classe
+import { AudioManager } from './services/AudioManager'; 
 import { SoundEffects } from './services/SoundEffects';
 import { GAME_WIDTH, GAME_HEIGHT } from './constants';
 
@@ -24,10 +23,8 @@ const App: React.FC = () => {
   const requestRef = useRef<number>(0);
   
   // --- AUDIO SERVICES ---
-  // MusicGenerator gardé pour les jingles (Victoire/GameOver) 
-  const jingleGen = useRef<MusicGenerator>(new MusicGenerator());
-  // AudioManager pour la musique de fond (MP3)
-  const bgmManager = useRef<AudioManager>(new AudioManager());
+  // AudioManager gère désormais toutes les musiques (Intro, Game, Win, Lose)
+  const audioManager = useRef<AudioManager>(new AudioManager());
   const sfx = useRef<SoundEffects>(new SoundEffects());
 
   // --- STATE TRACKING ---
@@ -38,30 +35,23 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      // Calcul du facteur d'échelle pour faire tenir 1920x1080 dans la fenêtre
       const scaleX = window.innerWidth / GAME_WIDTH;
       const scaleY = window.innerHeight / GAME_HEIGHT;
-      // On prend le plus petit ratio pour que tout rentre
-      // On garde une marge de 5% (0.95) pour que ce soit joli
       const newScale = Math.min(scaleX, scaleY) * 0.95; 
       setScale(newScale);
     };
 
     window.addEventListener('resize', handleResize);
-    // Petit délai pour s'assurer que le window.innerWidth est correct au chargement initial
     setTimeout(handleResize, 50);
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Initialisation Audio au premier clic (Start Game)
   const startGame = async (config: GameConfig) => {
-    // Initialisation du contexte audio sur interaction utilisateur
     try {
-        await jingleGen.current.init();
         await sfx.current.resume();
-        
-        // On lance la musique d'ambiance ici
-        bgmManager.current.playMusic();
+        // Le changement d'état vers PLAYING déclenchera la musique via le useEffect
     } catch (e) {
         console.warn("Erreur audio:", e);
     }
@@ -71,35 +61,37 @@ const App: React.FC = () => {
     setGameState({ ...initial, status: 'PLAYING' });
   };
 
-  // --- GESTION AUDIO (AMBIANCE & JINGLES) ---
+  // --- GESTION MUSIQUE D'AMBIANCE ---
   useEffect(() => {
-      if (gameState.status === 'PLAYING') {
-          // Musique de fond active
-          bgmManager.current.playMusic();
-      } else if (gameState.status === 'VICTORY') {
-          bgmManager.current.stop(); // On coupe la musique de fond
-          jingleGen.current.stop();
-          jingleGen.current.playVictory(); // On joue le jingle
-          sfx.current.setBoostState(false);
-      } else if (gameState.status === 'GAMEOVER') {
-          bgmManager.current.stop(); // On coupe la musique de fond
-          jingleGen.current.stop();
-          jingleGen.current.playGameOver(); // On joue le jingle
-          sfx.current.setBoostState(false);
-      } else {
-          // Menu ou autre état : Silence
-          bgmManager.current.stop();
-          jingleGen.current.stop();
-          sfx.current.setBoostState(false);
+      switch (gameState.status) {
+          case 'MENU':
+              audioManager.current.play('intro');
+              break;
+          case 'PLAYING':
+              audioManager.current.play('game');
+              break;
+          case 'VICTORY':
+              audioManager.current.play('win');
+              sfx.current.setBoostState(false);
+              break;
+          case 'GAMEOVER':
+              audioManager.current.play('lose');
+              sfx.current.setBoostState(false);
+              break;
+          default:
+              audioManager.current.stop();
+              sfx.current.setBoostState(false);
+              break;
       }
   }, [gameState.status]);
 
-  // --- GESTION AUDIO (SFX ONE-SHOT & BOOST CONTINU) ---
+  // --- GESTION SFX ---
   useEffect(() => {
       // 1. Gestion du son continu de boost
-      // On le met à jour à chaque frame où l'état de boost change
       if (gameState.status === 'PLAYING') {
           sfx.current.setBoostState(gameState.player.isBoosting);
+      } else {
+          sfx.current.setBoostState(false);
       }
 
       // 2. Lecture des bruitages (SFX) basés sur les événements instantanés
@@ -117,11 +109,10 @@ const App: React.FC = () => {
   // --- NAVIGATION / TIMER FIN DE PARTIE ---
   useEffect(() => {
       let timeoutId: ReturnType<typeof setTimeout>;
-      // Ce useEffect ne dépend QUE de gameState.status pour le reset
       if (gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER') {
         timeoutId = setTimeout(() => {
           setGameState(createInitialState(currentConfig.current)); 
-        }, 4000);
+        }, 6000); // Un peu plus long pour laisser la musique de fin jouer
       }
       return () => { if (timeoutId) clearTimeout(timeoutId); };
   }, [gameState.status]);
@@ -141,22 +132,19 @@ const App: React.FC = () => {
   useEffect(() => {
     inputManager.current = new InputManager();
     requestRef.current = requestAnimationFrame(loop);
+    
+    // Lancer la musique d'intro dès que possible (peut être bloqué par l'autoplay browser)
+    audioManager.current.play('intro');
 
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       if (inputManager.current) inputManager.current.cleanup();
-      bgmManager.current.stop();
-      jingleGen.current.stop();
+      audioManager.current.stop();
     };
   }, [loop]);
 
   return (
     <div className="w-full h-full bg-[#050505] overflow-hidden relative">
-      {/* 
-          SCALING CONTAINER (Position Absolue Centrée)
-          Utilisation de 'absolute' + 'translate' pour garantir le centrage
-          quel que soit le comportement du parent flexbox ou la taille de l'écran.
-      */}
       <div 
         style={{
           width: `${GAME_WIDTH}px`,

@@ -194,7 +194,9 @@ export const createInitialState = (config: GameConfig): GameState => {
                    state: 'chasing',
                    cooldown: 0,
                    sprintTimer: 0,
-                   isManual: false
+                   isManual: false,
+                   randomSpeedFactor: 1,
+                   randomSpeedTimer: 0
                });
                safe = true;
           }
@@ -219,7 +221,8 @@ export const createInitialState = (config: GameConfig): GameState => {
       stunTimer: 0,
       boostTimeLeft: PLAYER_MAX_BOOST_TIME,
       dogHits: 0,
-      lastHitTime: 0
+      lastHitTime: 0,
+      lastMoveDir: { x: 0, y: 0 } // Init direction
     },
     walls,
     enemies,
@@ -269,9 +272,23 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   newState.player.isBoosting = isBoosting;
   if (newState.player.stunTimer > 0) newState.player.stunTimer--;
 
+  // Direction logic with Boost "Cruise Control"
+  let dirX = input.axisX;
+  let dirY = input.axisY;
+  const inputLen = Math.sqrt(dirX*dirX + dirY*dirY);
+  
+  if (inputLen > 0.1) {
+      // Normalisation pour stockage de la direction pure
+      newState.player.lastMoveDir = { x: dirX/inputLen, y: dirY/inputLen };
+  } else if (isBoosting) {
+      // Si on booste sans input, on utilise la dernière direction connue
+      dirX = newState.player.lastMoveDir.x;
+      dirY = newState.player.lastMoveDir.y;
+  }
+
   const speed = isBoosting ? PLAYER_BOOST_SPEED : PLAYER_SPEED;
-  const vx = input.axisX * speed;
-  const vy = input.axisY * speed;
+  const vx = dirX * speed;
+  const vy = dirY * speed;
   newState.player.velocity = { x: vx, y: vy };
 
   if (input.actionTertiary && newState.player.canTeleport) {
@@ -373,11 +390,28 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       if (inputSource && (Math.abs(inputSource.axisX) > 0.05 || Math.abs(inputSource.axisY) > 0.05)) {
           enemy.isManual = true;
       }
+      
+      // Update Random Speed for Dog (Manual or Auto)
+      if (enemy.type === EntityType.DOG) {
+          enemy.randomSpeedTimer = (enemy.randomSpeedTimer || 0) - 1;
+          if (enemy.randomSpeedTimer <= 0) {
+              // Nouvelle vitesse aléatoire entre 0.8x et 2.2x
+              enemy.randomSpeedFactor = 0.8 + Math.random() * 1.4; 
+              // Change toutes les 20 à 60 frames (0.3s à 1s)
+              enemy.randomSpeedTimer = 20 + Math.random() * 40;
+          }
+      }
 
       if (enemy.isManual && inputSource) {
           // --- MODE MANUEL ---
           // Controle direct, pas d'IA.
-          const mSpeed = (enemy.type === EntityType.DOG ? DOG_SPEED : OLD_MAN_SPEED) * 1.5;
+          let mSpeed = (enemy.type === EntityType.DOG ? DOG_SPEED : OLD_MAN_SPEED) * 1.5;
+          
+          // Appliquer la variation aléatoire pour le chien en mode manuel
+          if (enemy.type === EntityType.DOG) {
+              mSpeed *= (enemy.randomSpeedFactor || 1);
+          }
+
           evx = inputSource.axisX * mSpeed;
           evy = inputSource.axisY * mSpeed;
           enemy.velocity = {x: evx, y: evy};

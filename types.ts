@@ -61,6 +61,8 @@ export interface Enemy {
   cooldown: number;
   sprintTimer?: number; // For Dog sprint mechanic
   isManual?: boolean; // True if MIDI control has taken over
+  randomSpeedFactor?: number; // Multiplicateur de vitesse aléatoire
+  randomSpeedTimer?: number; // Timer pour changer le facteur aléatoire
 }
 
 export interface Player {
@@ -75,6 +77,7 @@ export interface Player {
   boostTimeLeft: number; // In seconds
   dogHits: number; // Count of times hit by a dog
   lastHitTime?: number; // Timestamp of last hit
+  lastMoveDir: Vector2; // Memorize direction for boost latching
 }
 
 export interface GameConfig {

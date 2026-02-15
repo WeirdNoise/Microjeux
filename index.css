@@ -36,7 +36,7 @@ body {
 }
 
 .animate-super8-jitter {
-  animation: super8-jitter 0.5s infinite steps(4);
+  animation: super8-jitter 0.01s infinite steps(4);
 }
 
 /* Scintillement de luminosité (Exposure Flicker) */

@@ -244,6 +244,9 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
   const requestRef = useRef<number>(0);
   const lastClickTime = useRef(0);
   const hoveredElementRef = useRef<HTMLElement | null>(null);
+  
+  // Ref pour empêcher le spam du lancement de partie via la combo boutons
+  const comboTriggered = useRef(false);
 
   useEffect(() => {
       // Animation loop pour le curseur
@@ -296,11 +299,27 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                   }
               }
 
+              // --- LOGIQUE COMBO START (Boutons Blanc + Noir) ---
+              // Si les deux boutons sont pressés simultanément
+              if (input.actionPrimary && input.actionSecondary) {
+                  if (!comboTriggered.current) {
+                      comboTriggered.current = true;
+                      // Si nous sommes sur l'écran titre principal (pas de settings, pas d'énigme)
+                      if (!isSettingsOpen && !isRiddleOpen) {
+                          handleStartRequest();
+                      }
+                  }
+              } else {
+                  // Reset du trigger uniquement si au moins un bouton est relâché
+                  if (!input.actionPrimary || !input.actionSecondary) {
+                      comboTriggered.current = false;
+                  }
+              }
 
               // --- SIMULATION DU CLIC (Bouton Blanc / actionPrimaryTrigger) ---
-              // Anti-rebond basique (200ms)
+              // Anti-rebond basique (200ms) et priorité à la Combo (si secondaire n'est pas appuyé)
               const now = Date.now();
-              if (input.actionPrimaryTrigger && (now - lastClickTime.current > 200)) {
+              if (input.actionPrimaryTrigger && !input.actionSecondary && (now - lastClickTime.current > 200)) {
                   lastClickTime.current = now;
                   
                   // Visual Click Feedback
@@ -322,7 +341,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
 
       requestRef.current = requestAnimationFrame(updateCursor);
       return () => cancelAnimationFrame(requestRef.current);
-  }, [inputManager]);
+  }, [inputManager, isSettingsOpen, isRiddleOpen]); // Dépendances importantes pour l'état des modales
 
 
   const handleChange = (key: keyof GameConfig, val: number) => {
@@ -401,6 +420,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           </h1>
           
           <button 
+              id="btn-start-game"
               onClick={handleStartRequest}
               className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none transition-colors duration-200 uppercase tracking-widest cursor-none"
           >

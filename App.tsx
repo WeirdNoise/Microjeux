@@ -174,8 +174,7 @@ const App: React.FC = () => {
           <MainMenu 
             onStart={startGame} 
             initialConfig={currentConfig.current} 
-            // On passe l'inputManager depuis l'état pour garantir qu'il n'est pas null après init
-            inputManager={inputManagerReady} 
+            inputManager={inputManagerReady}
           />
         ) : (
           <>

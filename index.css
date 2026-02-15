@@ -50,7 +50,7 @@ body {
 }
 
 .animate-super8-flicker {
-  animation: super8-flicker 0.8s infinite steps(6);
+  animation: super8-flicker 0.1s infinite steps(6);
 }
 
 /* Rayures verticales qui sautent */

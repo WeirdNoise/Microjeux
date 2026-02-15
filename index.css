@@ -42,15 +42,15 @@ body {
 /* Scintillement de luminosité (Exposure Flicker) */
 /* Remonté vers 0.3 comme demandé */
 @keyframes super8-flicker {
-  0% { opacity: 0.15; }
-  25% { opacity: 0.28; }
-  50% { opacity: 0.2; }
-  75% { opacity: 0.3; }
-  100% { opacity: 0.15; }
+  0% { opacity: 0.18; }
+  25% { opacity: 0.30; }
+  50% { opacity: 0.22; }
+  75% { opacity: 0.31; }
+  100% { opacity: 0.18; }
 }
 
 .animate-super8-flicker {
-  animation: super8-flicker 0.5s infinite steps(6);
+  animation: super8-flicker 0.8s infinite steps(6);
 }
 
 /* Rayures verticales qui sautent */

@@ -15,8 +15,8 @@ export class InputManager {
   private prevMidiTag = false; // To detect MIDI note rising edge
   private lastDebugMessage: string = "MIDI: Waiting...";
   
-  // Stockage des dernières valeurs CC pour calculer le delta (Direction/Vitesse)
-  private lastMidiValues: Map<string, number> = new Map();
+  // Stockage des dernières valeurs CC et du dernier delta lissé
+  private lastMidiData: Map<string, { val: number, smoothDelta: number }> = new Map();
 
   constructor() {
     window.addEventListener('keydown', this.handleKeyDown);
@@ -59,27 +59,38 @@ export class InputManager {
 
       // --- LOGIQUE DELTA (Potentiomètres Infinis) ---
       // On compare la valeur actuelle avec la précédente pour déterminer la direction
-      const SENSITIVITY = 0.25; // Sensibilité de l'impulsion par tick
+      const SENSITIVITY = 0.25; 
+
+      // SEUIL DE BOUCLE (WRAP-AROUND)
+      // Augmenté à 96 (au lieu de 64) pour tolérer les mouvements très rapides 
+      // sans croire que le potentiomètre a fait un tour complet en arrière.
+      const WRAP_THRESHOLD = 96;
 
       const processDelta = (ch: number, cc: number, val: number): number => {
           const key = `${ch}_${cc}`;
-          if (!this.lastMidiValues.has(key)) {
-              this.lastMidiValues.set(key, val);
+          if (!this.lastMidiData.has(key)) {
+              this.lastMidiData.set(key, { val: val, smoothDelta: 0 });
               return 0;
           }
-          const prev = this.lastMidiValues.get(key)!;
-          let delta = val - prev;
+          
+          const prevData = this.lastMidiData.get(key)!;
+          let delta = val - prevData.val;
 
           // Gestion du passage 127 <-> 0 (Boucle)
-          if (delta < -64) delta += 128; // 127 -> 0 : Delta -127 devient +1
-          else if (delta > 64) delta -= 128; // 0 -> 127 : Delta +127 devient -1
+          if (delta < -WRAP_THRESHOLD) delta += 128; // 127 -> 0
+          else if (delta > WRAP_THRESHOLD) delta -= 128; // 0 -> 127
 
-          this.lastMidiValues.set(key, val);
-          return delta;
+          // FILTRAGE / LISSAGE (Low Pass Filter)
+          // Permet d'éviter les micro-saccades en moyennant avec le mouvement précédent
+          // 0.7 (Nouveau) / 0.3 (Ancien)
+          const smoothedDelta = (delta * 0.7) + (prevData.smoothDelta * 0.3);
+
+          this.lastMidiData.set(key, { val: val, smoothDelta: smoothedDelta });
+          return smoothedDelta;
       };
 
       const updateAxis = (current: number, delta: number, invert: boolean = false) => {
-          if (delta === 0) return current;
+          if (Math.abs(delta) < 0.01) return current; // Deadzone minime
           const d = invert ? -delta : delta;
           let next = current + (d * SENSITIVITY);
           // Clamp
@@ -91,7 +102,7 @@ export class InputManager {
       // CC HANDLER
       if (type === 176) {
           // CC 48: Horizontal (X)
-          // Invert=true demandé : Incrément -> Gauche (-X)
+          // Invert=true : Incrément -> Gauche (-X)
           if (note === 48) {
               const delta = processDelta(channel, note, velocity);
               if (channel === 0) this.midiState.dog.x = updateAxis(this.midiState.dog.x, delta, true);
@@ -99,12 +110,12 @@ export class InputManager {
               if (channel === 2) this.midiState.oldMan.x = updateAxis(this.midiState.oldMan.x, delta, true);
           }
           // CC 49: Vertical (Y)
-          // Invert=true maintenu : Incrément -> Haut (-Y)
+          // Invert=FALSE demandé : Incrément -> Bas (+Y)
           if (note === 49) {
               const delta = processDelta(channel, note, velocity);
-              if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, true);
-              if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, true);
-              if (channel === 2) this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, true);
+              if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, false);
+              if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, false);
+              if (channel === 2) this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, false);
           }
       }
 

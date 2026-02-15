@@ -302,17 +302,18 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart }) => {
                     <h3 className="text-xl underline mb-4 text-center text-gray-300">MIDI (AVANCÉ)</h3>
                     <div className="grid grid-cols-3 gap-4 text-xs text-gray-400">
                         <div className="border border-gray-700 p-2">
-                            <h4 className="font-bold mb-1 text-white text-center">CH 1: JOUEUR</h4>
-                            <div className="flex justify-between"><span>MOVE</span><span>CC 1/2</span></div>
-                            <div className="flex justify-between"><span>TAG</span><span>NOTE 60</span></div>
+                            <h4 className="font-bold mb-1 text-white text-center">CH 1: CHIEN</h4>
+                            <div className="flex justify-between"><span>MOVE</span><span>CC 48/49</span></div>
                         </div>
                          <div className="border border-gray-700 p-2">
-                            <h4 className="font-bold mb-1 text-white text-center">CH 3: CHIENS</h4>
-                            <div className="flex justify-between"><span>MOVE</span><span>CC 1/2</span></div>
+                            <h4 className="font-bold mb-1 text-white text-center">CH 2: TCHIPEUR</h4>
+                            <div className="flex justify-between"><span>MOVE</span><span>CC 48/49</span></div>
+                            <div className="flex justify-between"><span>BTN BLANC</span><span>TAG</span></div>
+                            <div className="flex justify-between"><span>BTN NOIR</span><span>BOOST</span></div>
                         </div>
                          <div className="border border-gray-700 p-2">
-                            <h4 className="font-bold mb-1 text-white text-center">CH 4: VIEUX</h4>
-                            <div className="flex justify-between"><span>MOVE</span><span>CC 1/2</span></div>
+                            <h4 className="font-bold mb-1 text-white text-center">CH 3: VIEUX</h4>
+                            <div className="flex justify-between"><span>MOVE</span><span>CC 48/49</span></div>
                         </div>
                     </div>
                 </div>

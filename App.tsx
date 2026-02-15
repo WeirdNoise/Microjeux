@@ -21,6 +21,9 @@ const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(createInitialState(DEFAULT_CONFIG));
   
   const inputManager = useRef<InputManager | null>(null);
+  // État local pour forcer le re-render une fois l'inputManager prêt
+  const [inputManagerReady, setInputManagerReady] = useState<InputManager | null>(null);
+
   const requestRef = useRef<number>(0);
   
   // --- AUDIO SERVICES ---
@@ -135,7 +138,10 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    inputManager.current = new InputManager();
+    const mgr = new InputManager();
+    inputManager.current = mgr;
+    setInputManagerReady(mgr); // Trigger re-render pour les enfants
+
     requestRef.current = requestAnimationFrame(loop);
     
     // Lancer la musique d'intro dès que possible (peut être bloqué par l'autoplay browser)
@@ -168,8 +174,8 @@ const App: React.FC = () => {
           <MainMenu 
             onStart={startGame} 
             initialConfig={currentConfig.current} 
-            // On passe l'inputManager s'il est initialisé (il l'est dans le useEffect au montage)
-            inputManager={inputManager.current} 
+            // On passe l'inputManager depuis l'état pour garantir qu'il n'est pas null après init
+            inputManager={inputManagerReady} 
           />
         ) : (
           <>

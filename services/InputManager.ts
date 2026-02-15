@@ -111,12 +111,12 @@ export class InputManager {
               if (channel === 2) this.midiState.oldMan.x = updateAxis(this.midiState.oldMan.x, delta, true);
           }
           // CC 49: Vertical (Y)
-          // Invert=FALSE demandé : Incrément -> Bas (+Y)
+          // Invert=TRUE demandé (Modification) : Incrément -> Haut (-Y)
           if (note === 49) {
               const delta = processDelta(channel, note, velocity);
-              if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, false);
-              if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, false);
-              if (channel === 2) this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, false);
+              if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, true);
+              if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, true);
+              if (channel === 2) this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, true);
           }
       }
 

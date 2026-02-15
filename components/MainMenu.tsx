@@ -377,16 +377,14 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
     </svg>
   );
 
-  // Note: On ajoute `focus:bg-white focus:text-black focus:outline-none` aux boutons pour qu'ils réagissent au "survol" du curseur virtuel.
-
   return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white cursor-none">
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white">
       
       {/* --- VIRTUAL CURSOR --- */}
-      {/* Affiché uniquement si un sous-menu est ouvert (Settings ou Riddle) */}
+      {/* Affiché uniquement pour l'écran d'énigme, masqué dans les paramètres et l'accueil */}
       <div 
         ref={cursorRef}
-        className={`fixed top-0 left-0 w-12 h-12 pointer-events-none z-[10000] rounded-full border-4 border-red-600 bg-red-600/30 transition-transform duration-75 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.8)] ${(!isSettingsOpen && !isRiddleOpen) ? 'opacity-0' : 'opacity-100'}`}
+        className={`fixed top-0 left-0 w-12 h-12 pointer-events-none z-[10000] rounded-full border-4 border-red-600 bg-red-600/30 transition-transform duration-75 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.8)] ${!isRiddleOpen ? 'opacity-0' : 'opacity-100'}`}
         style={{ transform: `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px)`, marginLeft: '-24px', marginTop: '-10px' }}
       >
           <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_5px_white]"></div>
@@ -401,7 +399,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           <button 
               id="btn-start-game"
               onClick={handleStartRequest}
-              className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none transition-colors duration-200 uppercase tracking-widest cursor-none"
+              className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none transition-colors duration-200 uppercase tracking-widest"
           >
               COLORIE TA VILLE
           </button>
@@ -411,7 +409,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
       {!isSettingsOpen && !isRiddleOpen && (
         <button 
           onClick={() => setIsSettingsOpen(true)}
-          className="absolute top-8 right-8 p-4 border border-transparent hover:border-white focus:border-white focus:outline-none rounded-full transition-all text-gray-500 hover:text-white focus:text-white cursor-none"
+          className="absolute top-8 right-8 p-4 border border-transparent hover:border-white focus:border-white focus:outline-none rounded-full transition-all text-gray-500 hover:text-white focus:text-white"
         >
           <GearIcon />
         </button>
@@ -433,7 +431,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                       <button 
                         key={idx}
                         onClick={() => checkAnswer(idx)}
-                        className="text-2xl border-2 border-gray-500 py-6 px-4 hover:border-white hover:bg-white hover:text-black focus:border-white focus:bg-white focus:text-black focus:outline-none transition-all cursor-none"
+                        className="text-2xl border-2 border-gray-500 py-6 px-4 hover:border-white hover:bg-white hover:text-black focus:border-white focus:bg-white focus:text-black focus:outline-none transition-all"
                       >
                           {option}
                       </button>
@@ -442,7 +440,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
 
               <button 
                 onClick={() => setIsRiddleOpen(false)}
-                className="mt-12 text-gray-500 hover:text-white focus:text-white focus:outline-none underline cursor-none"
+                className="mt-12 text-gray-500 hover:text-white focus:text-white focus:outline-none underline"
               >
                 Retour
               </button>
@@ -469,7 +467,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
             {/* Header Settings */}
             <div className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
               <h2 className="text-4xl font-bold tracking-widest">PARAMÈTRES DE MISSION</h2>
-              <button onClick={() => setIsSettingsOpen(false)} className="hover:text-gray-400 focus:text-white focus:outline-none cursor-none">
+              <button onClick={() => setIsSettingsOpen(false)} className="hover:text-gray-400 focus:text-white focus:outline-none">
                 <CloseIcon />
               </button>
             </div>
@@ -479,33 +477,33 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                 <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">MURS</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('wallCount', Math.max(1, config.wallCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
+                        <button onClick={() => handleChange('wallCount', Math.max(1, config.wallCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
                         <span className="text-4xl font-bold w-12">{config.wallCount}</span>
-                        <button onClick={() => handleChange('wallCount', Math.min(10, config.wallCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
+                        <button onClick={() => handleChange('wallCount', Math.min(10, config.wallCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
                     </div>
                 </div>
                 <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">CHIENS</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('dogCount', Math.max(0, config.dogCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
+                        <button onClick={() => handleChange('dogCount', Math.max(0, config.dogCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
                         <span className="text-4xl font-bold w-12">{config.dogCount}</span>
-                        <button onClick={() => handleChange('dogCount', Math.min(2, config.dogCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
+                        <button onClick={() => handleChange('dogCount', Math.min(2, config.dogCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
                     </div>
                 </div>
                 <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">VIEUX</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('oldManCount', Math.max(1, config.oldManCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
+                        <button onClick={() => handleChange('oldManCount', Math.max(1, config.oldManCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
                         <span className="text-4xl font-bold w-12">{config.oldManCount}</span>
-                        <button onClick={() => handleChange('oldManCount', Math.min(10, config.oldManCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
+                        <button onClick={() => handleChange('oldManCount', Math.min(10, config.oldManCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
                     </div>
                 </div>
                  <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
                     <label className="mb-2 text-xl font-bold text-gray-400">TEMPS (s)</label>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('gameDuration', Math.max(30, config.gameDuration - 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">-</button>
+                        <button onClick={() => handleChange('gameDuration', Math.max(30, config.gameDuration - 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
                         <span className="text-4xl font-bold w-20">{config.gameDuration}</span>
-                        <button onClick={() => handleChange('gameDuration', Math.min(300, config.gameDuration + 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none cursor-none">+</button>
+                        <button onClick={() => handleChange('gameDuration', Math.min(300, config.gameDuration + 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
                     </div>
                 </div>
             </div>
@@ -527,17 +525,17 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                     <div className="grid grid-cols-3 gap-4 text-xs text-gray-400">
                         <div className="border border-gray-700 p-2">
                             <h4 className="font-bold mb-1 text-white text-center">CH 1: CHIEN</h4>
-                            <div className="flex justify-between"><span>MOVE</span><span>CC 48/49</span></div>
+                            <div className="flex justify-between"><span>POTS JAUNE/NOIR</span><span>MOVE</span></div>
                         </div>
                          <div className="border border-gray-700 p-2">
                             <h4 className="font-bold mb-1 text-white text-center">CH 2: TCHIPEUR</h4>
-                            <div className="flex justify-between"><span>MOVE</span><span>CC 48/49</span></div>
+                            <div className="flex justify-between"><span>JOYSTICK</span><span>MOVE</span></div>
                             <div className="flex justify-between"><span>BTN BLANC</span><span>TAG</span></div>
                             <div className="flex justify-between"><span>BTN NOIR</span><span>BOOST</span></div>
                         </div>
                          <div className="border border-gray-700 p-2">
                             <h4 className="font-bold mb-1 text-white text-center">CH 3: VIEUX</h4>
-                            <div className="flex justify-between"><span>MOVE</span><span>CC 48/49</span></div>
+                            <div className="flex justify-between"><span>POTS JAUNE/NOIR</span><span>MOVE</span></div>
                         </div>
                     </div>
                 </div>

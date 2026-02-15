@@ -167,7 +167,7 @@ export class InputManager {
 
     // Decay MIDI Axes (Simulation inertie)
     // On conserve un decay rapide pour que ça s'arrête si on arrête de tourner
-    const DECAY = 0.92;
+    const DECAY = 0.94; // Augmenté pour plus d'inertie (était 0.92)
     const cleanAxis = (val: number) => Math.abs(val) < 0.05 ? 0 : val * DECAY;
 
     this.midiState.player.x = cleanAxis(this.midiState.player.x);

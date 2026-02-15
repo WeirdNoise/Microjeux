@@ -50,17 +50,17 @@ body {
 }
 
 .animate-super8-flicker {
-  animation: super8-flicker 0.08s infinite steps(6);
+  animation: super8-flicker 0.1s infinite steps(6);
 }
 
 /* Rayures verticales qui sautent */
 @keyframes scratch-jump {
   0% { transform: translateX(0) scaleY(1); opacity: 0; }
-  10% { transform: translateX(10%) scaleY(1); opacity: 0.4; }
+  10% { transform: translateX(10%) scaleY(1); opacity: 0.6; }
   15% { opacity: 0; }
-  40% { transform: translateX(40%) scaleY(1.2); opacity: 0.3; }
+  40% { transform: translateX(40%) scaleY(1.2); opacity: 0.4; }
   45% { opacity: 0; }
-  70% { transform: translateX(80%) scaleY(0.8); opacity: 0.5; }
+  70% { transform: translateX(80%) scaleY(0.8); opacity: 0.7; }
   75% { opacity: 0; }
   100% { opacity: 0; }
 }
@@ -72,9 +72,9 @@ body {
 /* Poussières aléatoires */
 @keyframes dust-flicker {
   0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-  10% { opacity: 0.6; transform: scale(1.2) rotate(90deg); }
+  10% { opacity: 0.8; transform: scale(1.2) rotate(90deg); }
   20% { opacity: 0; }
-  60% { opacity: 0.4; transform: scale(0.8) rotate(-45deg); }
+  60% { opacity: 0.6; transform: scale(0.8) rotate(-45deg); }
   70% { opacity: 0; }
 }
 

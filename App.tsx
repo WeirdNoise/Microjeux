@@ -6,6 +6,7 @@ import { GameState, GameConfig } from './types';
 import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
 import { MusicGenerator } from './services/MusicGenerator';
+import { AudioManager } from './services/AudioManager'; // Import de la nouvelle classe
 import { SoundEffects } from './services/SoundEffects';
 import { GAME_WIDTH, GAME_HEIGHT } from './constants';
 
@@ -22,8 +23,11 @@ const App: React.FC = () => {
   const inputManager = useRef<InputManager | null>(null);
   const requestRef = useRef<number>(0);
   
-  // --- AUDIO GENERATORS ---
-  const musicGen = useRef<MusicGenerator>(new MusicGenerator());
+  // --- AUDIO SERVICES ---
+  // MusicGenerator gardé pour les jingles (Victoire/GameOver) 
+  const jingleGen = useRef<MusicGenerator>(new MusicGenerator());
+  // AudioManager pour la musique de fond (MP3)
+  const bgmManager = useRef<AudioManager>(new AudioManager());
   const sfx = useRef<SoundEffects>(new SoundEffects());
 
   // --- STATE TRACKING ---
@@ -53,9 +57,11 @@ const App: React.FC = () => {
   const startGame = async (config: GameConfig) => {
     // Initialisation du contexte audio sur interaction utilisateur
     try {
-        await musicGen.current.init();
+        await jingleGen.current.init();
         await sfx.current.resume();
-        musicGen.current.play();
+        
+        // On lance la musique d'ambiance ici
+        bgmManager.current.playMusic();
     } catch (e) {
         console.warn("Erreur audio:", e);
     }
@@ -65,23 +71,25 @@ const App: React.FC = () => {
     setGameState({ ...initial, status: 'PLAYING' });
   };
 
-  // --- GESTION AUDIO (LOOP & JINGLES) ---
+  // --- GESTION AUDIO (AMBIANCE & JINGLES) ---
   useEffect(() => {
-      // Gestion de la boucle principale et des jingles de fin
       if (gameState.status === 'PLAYING') {
-          musicGen.current.play();
+          // Musique de fond active
+          bgmManager.current.playMusic();
       } else if (gameState.status === 'VICTORY') {
-          musicGen.current.stop(); // Arrêter la musique de fond
-          musicGen.current.playVictory();
-          // Couper le boost si on gagne
+          bgmManager.current.stop(); // On coupe la musique de fond
+          jingleGen.current.stop();
+          jingleGen.current.playVictory(); // On joue le jingle
           sfx.current.setBoostState(false);
       } else if (gameState.status === 'GAMEOVER') {
-          musicGen.current.stop(); // Arrêter la musique de fond
-          musicGen.current.playGameOver();
-          // Couper le boost si on perd
+          bgmManager.current.stop(); // On coupe la musique de fond
+          jingleGen.current.stop();
+          jingleGen.current.playGameOver(); // On joue le jingle
           sfx.current.setBoostState(false);
       } else {
-          musicGen.current.stop();
+          // Menu ou autre état : Silence
+          bgmManager.current.stop();
+          jingleGen.current.stop();
           sfx.current.setBoostState(false);
       }
   }, [gameState.status]);
@@ -137,7 +145,8 @@ const App: React.FC = () => {
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       if (inputManager.current) inputManager.current.cleanup();
-      musicGen.current.stop();
+      bgmManager.current.stop();
+      jingleGen.current.stop();
     };
   }, [loop]);
 

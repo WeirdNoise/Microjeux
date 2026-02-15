@@ -60,6 +60,7 @@ export interface Enemy {
   state: 'idle' | 'chasing' | 'barking' | 'yelling' | 'cleaning';
   cooldown: number;
   sprintTimer?: number; // For Dog sprint mechanic
+  isManual?: boolean; // True if MIDI control has taken over
 }
 
 export interface Player {

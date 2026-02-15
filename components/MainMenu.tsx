@@ -385,7 +385,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
       <div 
         ref={cursorRef}
         className={`fixed top-0 left-0 w-12 h-12 pointer-events-none z-[10000] rounded-full border-4 border-red-600 bg-red-600/30 transition-transform duration-75 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.8)] ${!isRiddleOpen ? 'opacity-0' : 'opacity-100'}`}
-        style={{ transform: `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px)`, marginLeft: '-24px', marginTop: '-10px' }}
+        style={{ transform: `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px)`, marginLeft: '-24px', marginTop: '15px' }}
       >
           <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_5px_white]"></div>
       </div>

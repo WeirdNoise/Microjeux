@@ -193,7 +193,8 @@ export const createInitialState = (config: GameConfig): GameState => {
                    velocity: { x: initVx, y: initVy },
                    state: 'chasing',
                    cooldown: 0,
-                   sprintTimer: 0
+                   sprintTimer: 0,
+                   isManual: false
                });
                safe = true;
           }
@@ -366,15 +367,28 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   newState.enemies.forEach(enemy => {
       let evx = 0, evy = 0;
       let inputSource = enemy.type === EntityType.DOG ? input.enemies.dog : input.enemies.oldMan;
-      let manualActive = inputSource && (Math.abs(inputSource.axisX) > 0.1 || Math.abs(inputSource.axisY) > 0.1);
+      
+      // DÉTECTION MODE MANUEL
+      // Si on reçoit des données MIDI significatives sur le canal dédié, on active le mode manuel définitivement.
+      if (inputSource && (Math.abs(inputSource.axisX) > 0.05 || Math.abs(inputSource.axisY) > 0.05)) {
+          enemy.isManual = true;
+      }
 
-      if (manualActive && inputSource) {
+      if (enemy.isManual && inputSource) {
+          // --- MODE MANUEL ---
+          // Controle direct, pas d'IA.
           const mSpeed = (enemy.type === EntityType.DOG ? DOG_SPEED : OLD_MAN_SPEED) * 1.5;
           evx = inputSource.axisX * mSpeed;
           evy = inputSource.axisY * mSpeed;
           enemy.velocity = {x: evx, y: evy};
+          
+          // On s'assure que l'état permet le mouvement (pas bloqué en barking/yelling par l'IA précédente)
+          if (enemy.state !== 'chasing' && enemy.state !== 'idle') {
+              enemy.state = 'chasing';
+          }
       } 
       else {
+          // --- MODE AUTOMATIQUE (IA) ---
           if (enemy.type === EntityType.OLD_MAN) {
                const dx = newState.player.x - enemy.x;
                const dy = newState.player.y - enemy.y;
@@ -445,7 +459,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           }
       }
 
-      if (enemy.type === EntityType.OLD_MAN) {
+      if (enemy.type === EntityType.OLD_MAN && !enemy.isManual) {
           if (enemy.x < 50 || enemy.x > GAME_WIDTH - 50) enemy.velocity.x *= -1;
           if (enemy.y < 50 || enemy.y > GAME_HEIGHT - 50) enemy.velocity.y *= -1;
           evx = enemy.velocity.x;
@@ -471,7 +485,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       enemy.x = eMove.x;
       enemy.y = eMove.y;
 
-      if (eMove.hitWall && enemy.type === EntityType.OLD_MAN) {
+      if (eMove.hitWall && enemy.type === EntityType.OLD_MAN && !enemy.isManual) {
           enemy.velocity.x *= -1;
           enemy.velocity.y *= -1;
       }
@@ -491,7 +505,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
                   newState.audioEvents.push('HIT_OLDMAN'); 
               }
 
-              if (enemy.state === 'chasing') {
+              if (enemy.state === 'chasing' && !enemy.isManual) {
                   enemy.state = enemy.type === EntityType.DOG ? 'barking' : 'yelling';
                   enemy.cooldown = 120;
                   if (enemy.sprintTimer) enemy.sprintTimer = 0;

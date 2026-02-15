@@ -68,6 +68,58 @@ const RIDDLES = [
     options: ["Une carte", "Un rêve", "Le désert", "Une planète"],
     correct: 0
   },
+  // --- NOUVELLES ÉNIGMES TEXTUELLES ---
+  {
+    question: "Je suis un fruit jaune et courbé. Qui suis-je ?",
+    options: ["Une pomme", "Une banane", "Une poire", "Une orange"],
+    correct: 1
+  },
+  {
+    question: "J'ai quatre pieds mais je ne peux pas marcher. Qui suis-je ?",
+    options: ["Un chien", "Une tortue", "Une chaise", "Un bébé"],
+    correct: 2
+  },
+  {
+    question: "Je monte quand la pluie tombe. Qui suis-je ?",
+    options: ["Le soleil", "Un oiseau", "Un parapluie", "La lune"],
+    correct: 2
+  },
+  {
+    question: "On m'achète pour manger mais on ne me mange jamais. Qui suis-je ?",
+    options: ["Une fourchette", "Une assiette", "Une nappe", "Une table"],
+    correct: 1
+  },
+  {
+    question: "Je suis le roi de la jungle.",
+    options: ["Le tigre", "L'éléphant", "Le lion", "Le singe"],
+    correct: 2
+  },
+  {
+    question: "Plus on en retire, plus je deviens grand. Qui suis-je ?",
+    options: ["Un trou", "Un sac", "Un ballon", "Un tas de sable"],
+    correct: 0
+  },
+  {
+    question: "J'ai un oeil mais je ne vois rien. Qui suis-je ?",
+    options: ["Un cyclope", "Une aiguille", "Une pomme de terre", "Un dé"],
+    correct: 1
+  },
+  {
+    question: "Je suis blanc et froid, je tombe en hiver. Qui suis-je ?",
+    options: ["La pluie", "La grêle", "Le brouillard", "La neige"],
+    correct: 3
+  },
+  {
+    question: "Je donne du lait et je mange de l'herbe.",
+    options: ["Une poule", "Une vache", "Un cochon", "Un cheval"],
+    correct: 1
+  },
+  {
+    question: "J'ai des aiguilles mais je ne sais pas coudre. Qui suis-je ?",
+    options: ["Un hérisson", "Un sapin", "Une montre", "Un cactus"],
+    correct: 2
+  },
+
   // --- MATHÉMATIQUES (Niveau Primaire) ---
   {
     question: "Combien font 7 + 6 ?",
@@ -118,6 +170,57 @@ const RIDDLES = [
     question: "Combien font 50 - 10 ?",
     options: ["30", "40", "60", "20"],
     correct: 1
+  },
+  // --- NOUVELLES ÉNIGMES MATHÉMATIQUES ---
+  {
+    question: "Combien font 3 x 3 ?",
+    options: ["6", "9", "12", "33"],
+    correct: 1
+  },
+  {
+    question: "Combien font 50 + 50 ?",
+    options: ["100", "5050", "150", "0"],
+    correct: 0
+  },
+  {
+    question: "Quel est le chiffre après 19 ?",
+    options: ["18", "21", "20", "30"],
+    correct: 2
+  },
+  {
+    question: "Quelle est la moitié de 10 ?",
+    options: ["2", "5", "10", "20"],
+    correct: 1
+  },
+  {
+    question: "Combien font 100 - 1 ?",
+    options: ["90", "99", "101", "10"],
+    correct: 1
+  },
+  {
+    question: "Combien font 6 x 10 ?",
+    options: ["16", "36", "60", "600"],
+    correct: 2
+  },
+  {
+    question: "Combien font 12 moins 4 ?",
+    options: ["6", "8", "10", "4"],
+    correct: 1
+  },
+  {
+    question: "Quel est le double de 6 ?",
+    options: ["3", "66", "12", "18"],
+    correct: 2
+  },
+  {
+    question: "Combien font 7 + 7 ?",
+    options: ["14", "12", "15", "10"],
+    correct: 0
+  },
+  {
+    question: "Combien font 30 - 10 ?",
+    options: ["10", "30", "40", "20"],
+    correct: 3
   }
 ];
 

@@ -90,18 +90,18 @@ export class InputManager {
 
       // CC HANDLER
       if (type === 176) {
-          // CC 48: Horizontal (X) -> Inc = Droite
-          // CC 49: Vertical (Y) -> Inc = Haut (Up)
-
+          // CC 48: Horizontal (X)
+          // Invert=true demandé : Incrément -> Gauche (-X)
           if (note === 48) {
               const delta = processDelta(channel, note, velocity);
-              if (channel === 0) this.midiState.dog.x = updateAxis(this.midiState.dog.x, delta, false);
-              if (channel === 1) this.midiState.player.x = updateAxis(this.midiState.player.x, delta, false);
-              if (channel === 2) this.midiState.oldMan.x = updateAxis(this.midiState.oldMan.x, delta, false);
+              if (channel === 0) this.midiState.dog.x = updateAxis(this.midiState.dog.x, delta, true);
+              if (channel === 1) this.midiState.player.x = updateAxis(this.midiState.player.x, delta, true);
+              if (channel === 2) this.midiState.oldMan.x = updateAxis(this.midiState.oldMan.x, delta, true);
           }
+          // CC 49: Vertical (Y)
+          // Invert=true maintenu : Incrément -> Haut (-Y)
           if (note === 49) {
               const delta = processDelta(channel, note, velocity);
-              // Invert=true car Incrément = Haut (-Y)
               if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, true);
               if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, true);
               if (channel === 2) this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, true);
@@ -113,13 +113,16 @@ export class InputManager {
       if (channel === 1) { 
           if (type === 144) { // Note On
               const pressed = velocity > 0;
-              if (note === 2) this.midiState.player.tag = pressed; // Btn Blanc
-              if (note === 3) this.midiState.player.boost = pressed; // Btn Noir
-              if (note === 1) this.midiState.player.teleport = pressed; // Switch ?
+              // Bouton Blanc (Tag) -> Note 14 (Spamming)
+              if (note === 14) this.midiState.player.tag = pressed;
+              // Bouton Noir (Boost) -> Note 15 (Latch)
+              if (note === 15) this.midiState.player.boost = pressed;
+              
+              if (note === 1) this.midiState.player.teleport = pressed; 
           }
           if (type === 128) { // Note Off
-              if (note === 2) this.midiState.player.tag = false;
-              if (note === 3) this.midiState.player.boost = false;
+              if (note === 14) this.midiState.player.tag = false;
+              if (note === 15) this.midiState.player.boost = false;
               if (note === 1) this.midiState.player.teleport = false;
           }
       }

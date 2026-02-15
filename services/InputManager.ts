@@ -14,6 +14,9 @@ export class InputManager {
 
   private prevMidiTag = false; // To detect MIDI note rising edge
   private lastDebugMessage: string = "MIDI: Waiting...";
+  
+  // Stockage des dernières valeurs CC pour calculer le delta (Direction/Vitesse)
+  private lastMidiValues: Map<string, number> = new Map();
 
   constructor() {
     window.addEventListener('keydown', this.handleKeyDown);
@@ -52,69 +55,72 @@ export class InputManager {
       const channel = command & 0xf; // 0-15
       const type = command & 0xf0;
 
-      // Update Debug String
       this.lastDebugMessage = `CH:${channel + 1} | CMD:${type} | NOTE:${note} | VAL:${velocity}`;
 
-      // Gestion Encodeurs Infinis (Relatif)
-      // Incrément (< 64) vs Décrément (> 64)
-      const SENSITIVITY = 0.3; // Impulsion par tick
-      
-      const updateAxis = (current: number, val: number, invert: boolean = false) => {
-          // Si val < 64 (0-63) -> Incrément (CW)
-          // Si val >= 64 (64-127) -> Décrément (CCW)
-          const isInc = val < 64;
-          const delta = isInc ? 1 : -1;
-          
-          // Si invert est true, Incrément diminue la valeur
-          const finalDelta = invert ? -delta : delta;
-          
-          let next = current + finalDelta * SENSITIVITY;
+      // --- LOGIQUE DELTA (Potentiomètres Infinis) ---
+      // On compare la valeur actuelle avec la précédente pour déterminer la direction
+      const SENSITIVITY = 0.25; // Sensibilité de l'impulsion par tick
+
+      const processDelta = (ch: number, cc: number, val: number): number => {
+          const key = `${ch}_${cc}`;
+          if (!this.lastMidiValues.has(key)) {
+              this.lastMidiValues.set(key, val);
+              return 0;
+          }
+          const prev = this.lastMidiValues.get(key)!;
+          let delta = val - prev;
+
+          // Gestion du passage 127 <-> 0 (Boucle)
+          if (delta < -64) delta += 128; // 127 -> 0 : Delta -127 devient +1
+          else if (delta > 64) delta -= 128; // 0 -> 127 : Delta +127 devient -1
+
+          this.lastMidiValues.set(key, val);
+          return delta;
+      };
+
+      const updateAxis = (current: number, delta: number, invert: boolean = false) => {
+          if (delta === 0) return current;
+          const d = invert ? -delta : delta;
+          let next = current + (d * SENSITIVITY);
           // Clamp
           if (next > 1) next = 1;
           if (next < -1) next = -1;
           return next;
       };
 
-      // --- CHANNEL 1 (0): LE CHIEN ---
-      if (channel === 0) {
-          if (type === 176) {
-              // CC 48: Horizontal (Inc = Droite -> +X)
-              if (note === 48) this.midiState.dog.x = updateAxis(this.midiState.dog.x, velocity, false);
-              // CC 49: Vertical (Inc = Haut -> -Y)
-              if (note === 49) this.midiState.dog.y = updateAxis(this.midiState.dog.y, velocity, true);
+      // CC HANDLER
+      if (type === 176) {
+          // CC 48: Horizontal (X) -> Inc = Droite
+          // CC 49: Vertical (Y) -> Inc = Haut (Up)
+
+          if (note === 48) {
+              const delta = processDelta(channel, note, velocity);
+              if (channel === 0) this.midiState.dog.x = updateAxis(this.midiState.dog.x, delta, false);
+              if (channel === 1) this.midiState.player.x = updateAxis(this.midiState.player.x, delta, false);
+              if (channel === 2) this.midiState.oldMan.x = updateAxis(this.midiState.oldMan.x, delta, false);
           }
-      } 
-      // --- CHANNEL 2 (1): TCHIPEUR ---
-      else if (channel === 1) { 
-          if (type === 176) {
-              // CC 48: Horizontal
-              if (note === 48) this.midiState.player.x = updateAxis(this.midiState.player.x, velocity, false);
-              // CC 49: Vertical (Inc = Haut -> -Y)
-              if (note === 49) this.midiState.player.y = updateAxis(this.midiState.player.y, velocity, true);
+          if (note === 49) {
+              const delta = processDelta(channel, note, velocity);
+              // Invert=true car Incrément = Haut (-Y)
+              if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, true);
+              if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, true);
+              if (channel === 2) this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, true);
           }
-          // Note On / Off
-          if (type === 144) {
+      }
+
+      // NOTE HANDLER (Boutons Arcade)
+      // Channel 2 (1) = Tchipeur
+      if (channel === 1) { 
+          if (type === 144) { // Note On
               const pressed = velocity > 0;
-              // Bouton Blanc (Note 2 / D-1) -> Tag
-              if (note === 2) this.midiState.player.tag = pressed;
-              // Bouton Noir (Note 3 / D#-1) -> Boost
-              if (note === 3) this.midiState.player.boost = pressed;
-              // Switch (Note 1) -> Non assigné ou Teleport ?
-              if (note === 1) this.midiState.player.teleport = pressed;
+              if (note === 2) this.midiState.player.tag = pressed; // Btn Blanc
+              if (note === 3) this.midiState.player.boost = pressed; // Btn Noir
+              if (note === 1) this.midiState.player.teleport = pressed; // Switch ?
           }
-          if (type === 128) {
+          if (type === 128) { // Note Off
               if (note === 2) this.midiState.player.tag = false;
               if (note === 3) this.midiState.player.boost = false;
               if (note === 1) this.midiState.player.teleport = false;
-          }
-      }
-      // --- CHANNEL 3 (2): LE VIEUX ---
-      else if (channel === 2) {
-          if (type === 176) {
-              // CC 48: Horizontal
-              if (note === 48) this.midiState.oldMan.x = updateAxis(this.midiState.oldMan.x, velocity, false);
-              // CC 49: Vertical (Inc = Haut -> -Y)
-              if (note === 49) this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, velocity, true);
           }
       }
   }
@@ -145,7 +151,8 @@ export class InputManager {
         kAxisY /= length;
     }
 
-    // Decay MIDI Axes (Simulation inertie pour contrôleurs infinis)
+    // Decay MIDI Axes (Simulation inertie)
+    // On conserve un decay rapide pour que ça s'arrête si on arrête de tourner
     const DECAY = 0.92;
     const cleanAxis = (val: number) => Math.abs(val) < 0.05 ? 0 : val * DECAY;
 

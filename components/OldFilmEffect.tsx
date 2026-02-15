@@ -1,52 +1,74 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 
 const OldFilmEffect: React.FC = () => {
-  // Génération d'une texture de bruit statique en base64
-  const noiseUrl = useMemo(() => {
-    if (typeof document === 'undefined') return '';
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return '';
-    
-    // Bruit noir et blanc
-    const idata = ctx.createImageData(256, 256);
-    const buffer32 = new Uint32Array(idata.data.buffer);
-    for (let i = 0; i < buffer32.length; i++) {
-        if (Math.random() < 0.5) {
-            buffer32[i] = 0xff000000; // Noir
-        } else {
-             buffer32[i] = 0x00ffffff; // Blanc (alpha 0)
-        }
-    }
-    ctx.putImageData(idata, 0, 0);
-    return canvas.toDataURL();
-  }, []);
-
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999] w-full h-full overflow-hidden select-none">
-        {/* VIGNETTE (Assombrissement des coins) */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_50%,rgba(0,0,0,0.5)_100%)] mix-blend-multiply" />
+    <div className="pointer-events-none fixed inset-0 z-[9999] w-full h-full overflow-hidden select-none bg-transparent">
+      
+      {/* 1. FILTRE SVG POUR GRAIN ORGANIQUE (Meilleur que Canvas Noise) */}
+      {/* Ce SVG est invisible mais définit le filtre utilisé par CSS */}
+      <svg className="hidden">
+        <filter id="super8-grain">
+          <feTurbulence 
+            type="fractalNoise" 
+            baseFrequency="0.8" 
+            numOctaves="3" 
+            stitchTiles="stitch" 
+            result="noise"
+          />
+          <feColorMatrix 
+            type="saturate" 
+            values="0" 
+            in="noise" 
+            result="grayNoise"
+          />
+          <feComponentTransfer in="grayNoise" result="contrastedNoise">
+              <feFuncR type="linear" slope="3" intercept="-1"/>
+              <feFuncG type="linear" slope="3" intercept="-1"/>
+              <feFuncB type="linear" slope="3" intercept="-1"/>
+          </feComponentTransfer>
+        </filter>
+      </svg>
+
+      {/* CONTAINER PRINCIPAL AVEC JITTER (Tremblement de l'image entière) */}
+      <div className="absolute inset-0 w-full h-full animate-super8-jitter">
         
-        {/* GRAIN (Bruit qui bouge) */}
+        {/* 2. COUCHE DE GRAIN ANIMÉE */}
+        {/* On utilise le filtre SVG défini plus haut */}
         <div 
-            className="absolute inset-[-100%] w-[300%] h-[300%] animate-grain opacity-[0.12] mix-blend-overlay"
-            style={{ backgroundImage: `url(${noiseUrl})`, backgroundRepeat: 'repeat' }} 
+          className="absolute inset-[-50%] w-[200%] h-[200%] opacity-30 mix-blend-overlay"
+          style={{ 
+            filter: 'url(#super8-grain)',
+            transform: 'translateZ(0)', // Force GPU
+          }}
         />
         
-        {/* RAYURES (Lignes verticales aléatoires) */}
-        <div className="absolute inset-0 w-full h-full animate-scratch">
-           <div className="absolute top-0 bottom-0 w-[2px] h-full bg-white/20 blur-[1px]" />
-        </div>
-        
-        <div className="absolute inset-0 w-full h-full animate-scratch" style={{ animationDelay: '2s', transform: 'scaleX(-1)' }}>
-           <div className="absolute top-0 bottom-0 left-[20%] w-[1px] h-full bg-black/30 blur-[1px]" />
+        {/* 3. RAYURES VERTICALES (Scratches) */}
+        <div className="absolute inset-0 w-full h-full">
+           {/* Rayure 1 */}
+           <div className="absolute top-0 bottom-0 left-[20%] w-[1px] bg-white/40 h-full animate-scratch" style={{ animationDuration: '3s', animationDelay: '0s' }} />
+           {/* Rayure 2 */}
+           <div className="absolute top-0 bottom-0 left-[65%] w-[2px] bg-black/50 h-full animate-scratch" style={{ animationDuration: '4.5s', animationDelay: '1s' }} />
         </div>
 
-         {/* SCINTILLEMENT (Variation globale de luminosité) */}
-         <div className="absolute inset-0 bg-white animate-flicker mix-blend-overlay"></div>
+        {/* 4. POUSSIÈRES & TÂCHES (Dust) */}
+        <div className="absolute top-[20%] left-[30%] w-2 h-2 rounded-full bg-black/60 blur-[1px] animate-dust" />
+        <div className="absolute top-[70%] left-[80%] w-24 h-[1px] bg-black/40 rotate-12 animate-dust" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute top-[50%] left-[10%] w-1 h-3 rounded-full bg-white/40 blur-[1px] animate-dust" style={{ animationDelay: '0.5s' }} />
+
+      </div>
+
+      {/* 5. VIGNETTE & CADRE (Overlay statique par dessus le jitter) */}
+      
+      {/* Vignette très forte (Coins noirs) */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_55%,rgba(5,5,5,0.8)_95%,rgba(0,0,0,1)_150%)]" />
+      
+      {/* Bordure floue pour simuler la fenêtre de projection */}
+      <div className="absolute inset-0 border-[40px] border-black/80 rounded-[40px] blur-[8px]" />
+      
+      {/* Scintillement global (Flicker) - Appliqué en dernier pour affecter la luminosité globale */}
+      <div className="absolute inset-0 bg-white mix-blend-overlay animate-super8-flicker pointer-events-none" />
+
     </div>
   );
 };

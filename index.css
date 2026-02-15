@@ -18,51 +18,65 @@ body {
   letter-spacing: 1px;
 }
 
-/* OLD FILM ANIMATIONS */
+/* SUPER 8 ANIMATIONS */
 
-@keyframes grain {
-  0%, 100% { transform: translate(0, 0); }
-  10% { transform: translate(-5%, -10%); }
-  30% { transform: translate(3%, -15%); }
-  50% { transform: translate(-12%, 5%); }
-  70% { transform: translate(8%, 15%); }
-  90% { transform: translate(-5%, 10%); }
+/* Tremblement du cadre (Gate Weave) */
+@keyframes super8-jitter {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-1px, 1px); }
+  20% { transform: translate(1px, -1px); }
+  30% { transform: translate(-2px, 0); }
+  40% { transform: translate(0, 2px); }
+  50% { transform: translate(1px, 1px); }
+  60% { transform: translate(-1px, -2px); }
+  70% { transform: translate(0, 1px); }
+  80% { transform: translate(2px, -1px); }
+  90% { transform: translate(-1px, 0); }
+  100% { transform: translate(0, 0); }
 }
 
-.animate-grain {
-  animation: grain 1.5s steps(6) infinite;
+.animate-super8-jitter {
+  animation: super8-jitter 0.5s infinite steps(4);
 }
 
-@keyframes scratch {
-  0% { transform: translateX(10vw); opacity: 0; }
-  10% { transform: translateX(10vw); opacity: 0.1; }
-  12% { opacity: 0; }
-  45% { transform: translateX(60vw); opacity: 0; }
-  50% { transform: translateX(60vw); opacity: 0.15; }
-  52% { opacity: 0; }
-  80% { transform: translateX(35vw); opacity: 0; }
-  85% { transform: translateX(35vw); opacity: 0.08; }
-  87% { opacity: 0; }
+/* Scintillement de luminosité (Exposure Flicker) */
+@keyframes super8-flicker {
+  0% { opacity: 0.85; }
+  25% { opacity: 0.95; }
+  50% { opacity: 0.8; }
+  75% { opacity: 0.9; }
+  100% { opacity: 0.85; }
+}
+
+.animate-super8-flicker {
+  animation: super8-flicker 0.2s infinite linear;
+}
+
+/* Rayures verticales qui sautent */
+@keyframes scratch-jump {
+  0% { transform: translateX(0) scaleY(1); opacity: 0; }
+  10% { transform: translateX(10%) scaleY(1); opacity: 0.4; }
+  15% { opacity: 0; }
+  40% { transform: translateX(40%) scaleY(1.2); opacity: 0.3; }
+  45% { opacity: 0; }
+  70% { transform: translateX(80%) scaleY(0.8); opacity: 0.5; }
+  75% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 .animate-scratch {
-  animation: scratch 6s infinite steps(1);
+  animation: scratch-jump 2s infinite steps(3);
 }
 
-@keyframes flicker {
-    0% { opacity: 0.02; }
-    3% { opacity: 0.05; }
-    6% { opacity: 0.02; }
-    15% { opacity: 0.06; }
-    20% { opacity: 0.02; }
-    50% { opacity: 0.02; }
-    55% { opacity: 0.05; }
-    60% { opacity: 0.02; }
-    90% { opacity: 0.06; }
-    100% { opacity: 0.02; }
+/* Poussières aléatoires */
+@keyframes dust-flicker {
+  0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+  10% { opacity: 0.6; transform: scale(1.2) rotate(90deg); }
+  20% { opacity: 0; }
+  60% { opacity: 0.4; transform: scale(0.8) rotate(-45deg); }
+  70% { opacity: 0; }
 }
 
-.animate-flicker {
-    animation: flicker 3s infinite linear;
+.animate-dust {
+  animation: dust-flicker 3s infinite steps(1);
 }

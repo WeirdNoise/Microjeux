@@ -526,6 +526,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                         <div className="border border-gray-700 p-2">
                             <h4 className="font-bold mb-1 text-white text-center">CH 1: CHIEN</h4>
                             <div className="flex justify-between"><span>POTS JAUNE/NOIR</span><span>MOVE</span></div>
+                            <div className="flex justify-between"><span>BTN NOIR</span><span>BOOST</span></div>
                         </div>
                          <div className="border border-gray-700 p-2">
                             <h4 className="font-bold mb-1 text-white text-center">CH 2: TCHIPEUR</h4>

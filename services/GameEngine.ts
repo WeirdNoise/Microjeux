@@ -390,24 +390,20 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       
       // DÉTECTION MODE MANUEL & MISE À JOUR INPUTS CHIEN
       
-      // Pour le chien, on vérifie si un contrôle manuel est activé (Channel 1 ou Channel 3)
-      // La direction prioritaire est celle du boost (Channel 3), sinon Channel 1.
+      // Pour le chien, on utilise désormais le Channel 1 (inputs standards) pour le boost
       if (enemy.type === EntityType.DOG) {
           const dogInput = input.enemies.dog;
-          const hasCh1Input = Math.abs(dogInput.axisX) > 0.05 || Math.abs(dogInput.axisY) > 0.05;
-          const hasCh3Input = dogInput.altAxisX !== undefined && (Math.abs(dogInput.altAxisX) > 0.05 || Math.abs(dogInput.altAxisY!) > 0.05);
+          const hasInput = Math.abs(dogInput.axisX) > 0.05 || Math.abs(dogInput.axisY) > 0.05;
           
-          if (hasCh1Input || hasCh3Input) {
+          if (hasInput || dogInput.boost) {
               enemy.isManual = true;
-              // Mise à jour de la dernière direction demandée
-              // Priorité au Channel 3 si utilisé (car c'est la direction du boost)
-              if (hasCh3Input) {
-                  const len = Math.sqrt(dogInput.altAxisX! * dogInput.altAxisX! + dogInput.altAxisY! * dogInput.altAxisY!);
-                  enemy.lastMoveDir = { x: dogInput.altAxisX! / len, y: dogInput.altAxisY! / len };
-              } else if (hasCh1Input) {
-                  const len = Math.sqrt(dogInput.axisX * dogInput.axisX + dogInput.axisY * dogInput.axisY);
-                  enemy.lastMoveDir = { x: dogInput.axisX / len, y: dogInput.axisY / len };
-              }
+          }
+
+          if (hasInput) {
+               const len = Math.sqrt(dogInput.axisX * dogInput.axisX + dogInput.axisY * dogInput.axisY);
+               if (len > 0.1) {
+                   enemy.lastMoveDir = { x: dogInput.axisX / len, y: dogInput.axisY / len };
+               }
           }
           
           enemy.isBoosting = dogInput.boost;
@@ -429,7 +425,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           // --- MODE MANUEL ---
           
           if (enemy.type === EntityType.DOG && enemy.isBoosting) {
-              // --- MODE BOOST CHIEN (CHANNEL 3 BOUTON NOIR) ---
+              // --- MODE BOOST CHIEN (CHANNEL 1 BOUTON NOIR) ---
               // Vitesse fixe de boost, direction basée sur lastMoveDir
               const boostSpeed = DOG_BOOST_SPEED; 
               const dir = enemy.lastMoveDir || {x: 1, y: 0};

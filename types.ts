@@ -14,10 +14,7 @@ export interface EntityInput {
     axisX: number;
     axisY: number;
     action1?: boolean; // Rotation for barrier, etc.
-    // Inputs alternatifs (ex: Channel 3 contrôlant le Chien)
-    boost?: boolean; 
-    altAxisX?: number; 
-    altAxisY?: number;
+    boost?: boolean; // Boost flag (ex: pour le chien via bouton noir)
 }
 
 export interface InputState {
@@ -68,7 +65,7 @@ export interface Enemy {
   randomSpeedFactor?: number; // Multiplicateur de vitesse aléatoire
   randomSpeedTimer?: number; // Timer pour changer le facteur aléatoire
   
-  // Logic spécifique au Boost Chien (Channel 3)
+  // Logic spécifique au Boost Chien
   isBoosting?: boolean; 
   lastMoveDir?: Vector2;
 }

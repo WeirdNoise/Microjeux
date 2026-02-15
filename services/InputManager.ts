@@ -10,8 +10,8 @@ export class InputManager {
   private midiState = {
       player: { x: 0, y: 0, tag: false, boost: false, teleport: false },
       barrier: { x: 0, y: 0, rotate: 0 },
-      // Dog a maintenant des entrées alternatives venant du canal 3
-      dog: { x: 0, y: 0, altX: 0, altY: 0, boost: false },
+      // Dog utilise uniquement les inputs du canal 1 désormais (index 0)
+      dog: { x: 0, y: 0, boost: false },
       oldMan: { x: 0, y: 0 }
   };
 
@@ -110,10 +110,9 @@ export class InputManager {
               const delta = processDelta(channel, note, velocity);
               if (channel === 0) this.midiState.dog.x = updateAxis(this.midiState.dog.x, delta, true);
               if (channel === 1) this.midiState.player.x = updateAxis(this.midiState.player.x, delta, true);
-              // Channel 2 (Hard 3): Move Old Man AND Update Dog Remote Direction (X)
+              // Channel 2 (Hard 3): Move Old Man
               if (channel === 2) {
                   this.midiState.oldMan.x = updateAxis(this.midiState.oldMan.x, delta, true);
-                  this.midiState.dog.altX = updateAxis(this.midiState.dog.altX, delta, true);
               }
           }
           // CC 49: Vertical (Y)
@@ -122,16 +121,21 @@ export class InputManager {
               const delta = processDelta(channel, note, velocity);
               if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, true);
               if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, true);
-              // Channel 2 (Hard 3): Move Old Man AND Update Dog Remote Direction (Y)
+              // Channel 2 (Hard 3): Move Old Man
               if (channel === 2) {
                   this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, true);
-                  this.midiState.dog.altY = updateAxis(this.midiState.dog.altY, delta, true);
               }
           }
       }
 
       // NOTE HANDLER (Boutons Arcade)
       
+      // Channel 0 (Hard 1) = Dog Boost (Bouton Noir = Note 15)
+      if (channel === 0) {
+           if (type === 144 && note === 15) this.midiState.dog.boost = (velocity > 0);
+           if (type === 128 && note === 15) this.midiState.dog.boost = false;
+      }
+
       // Channel 1 (Hard 2) = Tchipeur
       if (channel === 1) { 
           if (type === 144) { // Note On
@@ -145,13 +149,6 @@ export class InputManager {
               if (note === 15) this.midiState.player.boost = false;
               if (note === 1) this.midiState.player.teleport = false;
           }
-      }
-
-      // Channel 2 (Hard 3) = Dog Remote Boost (Bouton Noir)
-      if (channel === 2) {
-           // On suppose que le bouton Noir est la Note 15 (standard sur le contrôleur)
-           if (type === 144 && note === 15) this.midiState.dog.boost = (velocity > 0);
-           if (type === 128 && note === 15) this.midiState.dog.boost = false;
       }
   }
 
@@ -190,8 +187,6 @@ export class InputManager {
     this.midiState.player.y = cleanAxis(this.midiState.player.y);
     this.midiState.dog.x = cleanAxis(this.midiState.dog.x);
     this.midiState.dog.y = cleanAxis(this.midiState.dog.y);
-    this.midiState.dog.altX = cleanAxis(this.midiState.dog.altX);
-    this.midiState.dog.altY = cleanAxis(this.midiState.dog.altY);
     this.midiState.oldMan.x = cleanAxis(this.midiState.oldMan.x);
     this.midiState.oldMan.y = cleanAxis(this.midiState.oldMan.y);
 
@@ -220,10 +215,7 @@ export class InputManager {
           dog: {
               axisX: this.midiState.dog.x,
               axisY: this.midiState.dog.y,
-              // Mapping des nouveaux contrôles pour le boost chien
-              boost: this.midiState.dog.boost,
-              altAxisX: this.midiState.dog.altX,
-              altAxisY: this.midiState.dog.altY
+              boost: this.midiState.dog.boost
           },
           oldMan: {
               axisX: this.midiState.oldMan.x,

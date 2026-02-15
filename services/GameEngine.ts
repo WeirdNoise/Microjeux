@@ -15,6 +15,7 @@ import {
   TAG_TIME_REQUIRED,
   DOG_SPEED,
   DOG_SPRINT_SPEED,
+  DOG_BOOST_SPEED,
   OLD_MAN_SPEED,
   PLAYER_RADIUS,
   PLAYER_MAX_BOOST_TIME
@@ -196,7 +197,9 @@ export const createInitialState = (config: GameConfig): GameState => {
                    sprintTimer: 0,
                    isManual: false,
                    randomSpeedFactor: 1,
-                   randomSpeedTimer: 0
+                   randomSpeedTimer: 0,
+                   isBoosting: false,
+                   lastMoveDir: { x: 1, y: 0 } // Default valid direction
                });
                safe = true;
           }
@@ -385,9 +388,31 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       let evx = 0, evy = 0;
       let inputSource = enemy.type === EntityType.DOG ? input.enemies.dog : input.enemies.oldMan;
       
-      // DÉTECTION MODE MANUEL
-      // Si on reçoit des données MIDI significatives sur le canal dédié, on active le mode manuel définitivement.
-      if (inputSource && (Math.abs(inputSource.axisX) > 0.05 || Math.abs(inputSource.axisY) > 0.05)) {
+      // DÉTECTION MODE MANUEL & MISE À JOUR INPUTS CHIEN
+      
+      // Pour le chien, on vérifie si un contrôle manuel est activé (Channel 1 ou Channel 3)
+      // La direction prioritaire est celle du boost (Channel 3), sinon Channel 1.
+      if (enemy.type === EntityType.DOG) {
+          const dogInput = input.enemies.dog;
+          const hasCh1Input = Math.abs(dogInput.axisX) > 0.05 || Math.abs(dogInput.axisY) > 0.05;
+          const hasCh3Input = dogInput.altAxisX !== undefined && (Math.abs(dogInput.altAxisX) > 0.05 || Math.abs(dogInput.altAxisY!) > 0.05);
+          
+          if (hasCh1Input || hasCh3Input) {
+              enemy.isManual = true;
+              // Mise à jour de la dernière direction demandée
+              // Priorité au Channel 3 si utilisé (car c'est la direction du boost)
+              if (hasCh3Input) {
+                  const len = Math.sqrt(dogInput.altAxisX! * dogInput.altAxisX! + dogInput.altAxisY! * dogInput.altAxisY!);
+                  enemy.lastMoveDir = { x: dogInput.altAxisX! / len, y: dogInput.altAxisY! / len };
+              } else if (hasCh1Input) {
+                  const len = Math.sqrt(dogInput.axisX * dogInput.axisX + dogInput.axisY * dogInput.axisY);
+                  enemy.lastMoveDir = { x: dogInput.axisX / len, y: dogInput.axisY / len };
+              }
+          }
+          
+          enemy.isBoosting = dogInput.boost;
+      }
+      else if (inputSource && (Math.abs(inputSource.axisX) > 0.05 || Math.abs(inputSource.axisY) > 0.05)) {
           enemy.isManual = true;
       }
       
@@ -395,28 +420,36 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       if (enemy.type === EntityType.DOG) {
           enemy.randomSpeedTimer = (enemy.randomSpeedTimer || 0) - 1;
           if (enemy.randomSpeedTimer <= 0) {
-              // Nouvelle vitesse aléatoire entre 0.8x et 2.2x
               enemy.randomSpeedFactor = 0.8 + Math.random() * 1.4; 
-              // Change toutes les 20 à 60 frames (0.3s à 1s)
               enemy.randomSpeedTimer = 20 + Math.random() * 40;
           }
       }
 
       if (enemy.isManual && inputSource) {
           // --- MODE MANUEL ---
-          // Controle direct, pas d'IA.
-          let mSpeed = (enemy.type === EntityType.DOG ? DOG_SPEED : OLD_MAN_SPEED) * 1.5;
           
-          // Appliquer la variation aléatoire pour le chien en mode manuel
-          if (enemy.type === EntityType.DOG) {
-              mSpeed *= (enemy.randomSpeedFactor || 1);
-          }
+          if (enemy.type === EntityType.DOG && enemy.isBoosting) {
+              // --- MODE BOOST CHIEN (CHANNEL 3 BOUTON NOIR) ---
+              // Vitesse fixe de boost, direction basée sur lastMoveDir
+              const boostSpeed = DOG_BOOST_SPEED; 
+              const dir = enemy.lastMoveDir || {x: 1, y: 0};
+              evx = dir.x * boostSpeed;
+              evy = dir.y * boostSpeed;
+              enemy.velocity = {x: evx, y: evy};
+          } 
+          else {
+              // --- MODE MANUEL CLASSIQUE ---
+              let mSpeed = (enemy.type === EntityType.DOG ? DOG_SPEED : OLD_MAN_SPEED) * 1.5;
+              
+              if (enemy.type === EntityType.DOG) {
+                  mSpeed *= (enemy.randomSpeedFactor || 1);
+              }
 
-          evx = inputSource.axisX * mSpeed;
-          evy = inputSource.axisY * mSpeed;
-          enemy.velocity = {x: evx, y: evy};
+              evx = inputSource.axisX * mSpeed;
+              evy = inputSource.axisY * mSpeed;
+              enemy.velocity = {x: evx, y: evy};
+          }
           
-          // On s'assure que l'état permet le mouvement (pas bloqué en barking/yelling par l'IA précédente)
           if (enemy.state !== 'chasing' && enemy.state !== 'idle') {
               enemy.state = 'chasing';
           }

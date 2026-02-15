@@ -1,4 +1,5 @@
 
+
 // Résolution de référence HD pour garantir les proportions
 export const GAME_WIDTH = 1920;
 export const GAME_HEIGHT = 1080;
@@ -13,6 +14,7 @@ export const PLAYER_MAX_BOOST_TIME = 10;
 // CHIEN RALENTI (Avant: 2.8 et 7.5)
 export const DOG_SPEED = 1.6; 
 export const DOG_SPRINT_SPEED = 4.5; 
+export const DOG_BOOST_SPEED = 6.0; // Boost MIDI (Channel 3) - Moins rapide que Tchipeur (11)
 export const OLD_MAN_SPEED = 1.8;
 
 export const TAG_TIME_REQUIRED = 100; // 100 / 4 per click = 25 clicks

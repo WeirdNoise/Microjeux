@@ -14,6 +14,10 @@ export interface EntityInput {
     axisX: number;
     axisY: number;
     action1?: boolean; // Rotation for barrier, etc.
+    // Inputs alternatifs (ex: Channel 3 contrôlant le Chien)
+    boost?: boolean; 
+    altAxisX?: number; 
+    altAxisY?: number;
 }
 
 export interface InputState {
@@ -63,6 +67,10 @@ export interface Enemy {
   isManual?: boolean; // True if MIDI control has taken over
   randomSpeedFactor?: number; // Multiplicateur de vitesse aléatoire
   randomSpeedTimer?: number; // Timer pour changer le facteur aléatoire
+  
+  // Logic spécifique au Boost Chien (Channel 3)
+  isBoosting?: boolean; 
+  lastMoveDir?: Vector2;
 }
 
 export interface Player {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import GameCanvas from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import MainMenu from './components/MainMenu';
+import OldFilmEffect from './components/OldFilmEffect';
 import { GameState, GameConfig } from './types';
 import { createInitialState, updateGameState } from './services/GameEngine';
 import { InputManager } from './services/InputManager';
@@ -145,6 +146,7 @@ const App: React.FC = () => {
 
   return (
     <div className="w-full h-full bg-[#050505] overflow-hidden relative">
+      <OldFilmEffect />
       <div 
         style={{
           width: `${GAME_WIDTH}px`,

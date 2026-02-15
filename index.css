@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,4 +16,53 @@ body {
   font-family: 'Cabin Sketch', cursive;
   font-weight: 700;
   letter-spacing: 1px;
+}
+
+/* OLD FILM ANIMATIONS */
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  30% { transform: translate(3%, -15%); }
+  50% { transform: translate(-12%, 5%); }
+  70% { transform: translate(8%, 15%); }
+  90% { transform: translate(-5%, 10%); }
+}
+
+.animate-grain {
+  animation: grain 1.5s steps(6) infinite;
+}
+
+@keyframes scratch {
+  0% { transform: translateX(10vw); opacity: 0; }
+  10% { transform: translateX(10vw); opacity: 0.1; }
+  12% { opacity: 0; }
+  45% { transform: translateX(60vw); opacity: 0; }
+  50% { transform: translateX(60vw); opacity: 0.15; }
+  52% { opacity: 0; }
+  80% { transform: translateX(35vw); opacity: 0; }
+  85% { transform: translateX(35vw); opacity: 0.08; }
+  87% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.animate-scratch {
+  animation: scratch 6s infinite steps(1);
+}
+
+@keyframes flicker {
+    0% { opacity: 0.02; }
+    3% { opacity: 0.05; }
+    6% { opacity: 0.02; }
+    15% { opacity: 0.06; }
+    20% { opacity: 0.02; }
+    50% { opacity: 0.02; }
+    55% { opacity: 0.05; }
+    60% { opacity: 0.02; }
+    90% { opacity: 0.06; }
+    100% { opacity: 0.02; }
+}
+
+.animate-flicker {
+    animation: flicker 3s infinite linear;
 }

@@ -2,10 +2,11 @@
 export class SoundEffects {
   private boostAudio: HTMLAudioElement;
   private successAudio: HTMLAudioElement;
+  private sprayAudio: HTMLAudioElement;
   
   // Banques de sons aléatoires
   private dogFiles = ['/sounds/Aboiement1.mp3', '/sounds/Aboiement2.mp3'];
-  private oldManFiles = ['/sounds/VieuxGueule.mp3', '/sounds/VieuxRale.mp3'];
+  private oldManFiles = ['/sounds/VieuxGueule.mp3', '/sounds/VieuxRale.mp3', '/sounds/VieuxGueule2.mp3'];
 
   constructor() {
     // Son de boost en boucle
@@ -13,9 +14,13 @@ export class SoundEffects {
     this.boostAudio.loop = true;
     this.boostAudio.volume = 0.8;
 
-    // Son de réussite (tag)
+    // Son de réussite (tag terminé)
     this.successAudio = new Audio('/sounds/BaliseOk.mp3');
     this.successAudio.volume = 0.6;
+
+    // Son de l'action de taguer (spray)
+    this.sprayAudio = new Audio('/sounds/Tchip2.mp3');
+    this.sprayAudio.volume = 0.6;
   }
 
   public async resume() {
@@ -37,7 +42,11 @@ export class SoundEffects {
   }
 
   public playSpray() {
-    // Son synthétique supprimé comme demandé
+    // Joue le son de tag (Tchip2) uniquement s'il n'est pas déjà en cours.
+    // L'événement SPRAY étant envoyé à chaque frame (60fps), cela évite le redéclenchement intempestif.
+    if (this.sprayAudio.paused) {
+        this.sprayAudio.play().catch(() => {});
+    }
   }
 
   public playDogHit() {

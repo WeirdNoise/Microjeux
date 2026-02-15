@@ -3,7 +3,7 @@ import React from 'react';
 
 const OldFilmEffect: React.FC = () => {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999] w-full h-full overflow-hidden select-none bg-transparent">
+    <div className="pointer-events-none fixed inset-0 z-[9999] w-full h-full overflow-hidden select-none bg-transparent opacity-50">
       
       {/* 1. FILTRE SVG POUR GRAIN ORGANIQUE (Meilleur que Canvas Noise) */}
       {/* Ce SVG est invisible mais définit le filtre utilisé par CSS */}

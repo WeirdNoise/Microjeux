@@ -122,7 +122,11 @@ const App: React.FC = () => {
     if (!inputManager.current) return;
 
     setGameState(prevState => {
+      // Important: Même en menu, on continue de mettre à jour le state pour laisser
+      // le cycle React se faire si nécessaire, ou on laisse le menu gérer sa propre boucle.
+      // Ici, on bloque la mise à jour du JEU, mais inputManager continue de tourner.
       if (prevState.status === 'MENU') return prevState;
+      
       const input = inputManager.current!.getInput();
       return updateGameState(prevState, input);
     });
@@ -161,7 +165,12 @@ const App: React.FC = () => {
         className="bg-[#111] overflow-hidden"
       >
         {gameState.status === 'MENU' ? (
-          <MainMenu onStart={startGame} initialConfig={currentConfig.current} />
+          <MainMenu 
+            onStart={startGame} 
+            initialConfig={currentConfig.current} 
+            // On passe l'inputManager s'il est initialisé (il l'est dans le useEffect au montage)
+            inputManager={inputManager.current} 
+          />
         ) : (
           <>
             <GameCanvas gameState={gameState} />

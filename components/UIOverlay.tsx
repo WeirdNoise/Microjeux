@@ -1,6 +1,6 @@
 import React from 'react';
 import { GameState } from '../types';
-import { PLAYER_MAX_BOOST_TIME } from '../constants';
+import { PLAYER_MAX_BOOST_TIME, PLAYER_MAX_GHOST_TIME } from '../constants';
 
 interface UIOverlayProps {
   gameState: GameState;
@@ -8,12 +8,11 @@ interface UIOverlayProps {
 
 const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+    return Math.ceil(seconds).toString();
   };
 
   const boostPercentage = Math.max(0, Math.min(100, (gameState.player.boostTimeLeft / PLAYER_MAX_BOOST_TIME) * 100));
+  const ghostPercentage = Math.max(0, Math.min(100, (gameState.player.ghostTimeLeft / PLAYER_MAX_GHOST_TIME) * 100));
   
   // Affichage du menu principal géré par MainMenu, mais on peut laisser passer le debug
   
@@ -59,15 +58,34 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
                 </div>
 
                 {/* Boost Bar */}
-                <div 
-                    className={`h-4 bg-gray-900 border ${isEmergency ? 'border-red-600' : 'border-white'}`}
-                    style={{ width: `${squaresRowWidth}px` }}
-                >
+                <div className="flex flex-col items-end gap-1">
+                    <div className="text-[10px] uppercase tracking-widest opacity-60">Boost</div>
                     <div 
-                        className={`h-full ${mainBgClass} ${mainShadowClass}`} 
-                        style={{ width: `${boostPercentage}%` }}
-                    />
+                        className={`h-3 bg-gray-900 border ${isEmergency ? 'border-red-600' : 'border-white'}`}
+                        style={{ width: `${squaresRowWidth}px` }}
+                    >
+                        <div 
+                            className={`h-full ${mainBgClass} ${mainShadowClass}`} 
+                            style={{ width: `${boostPercentage}%` }}
+                        />
+                    </div>
                 </div>
+
+                {/* Ghost Bar */}
+                {gameState.player.ghostTimeLeft > 0 && (
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="text-[10px] uppercase tracking-widest opacity-60 text-cyan-400">Fantôme</div>
+                        <div 
+                            className={`h-3 bg-gray-900 border border-cyan-900`}
+                            style={{ width: `${squaresRowWidth}px` }}
+                        >
+                            <div 
+                                className={`h-full bg-cyan-400 shadow-[0_0_10px_cyan]`} 
+                                style={{ width: `${ghostPercentage}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
                 
                 {/* Objective Tags */}
                 <div className="flex gap-2 mt-1 justify-end">
@@ -131,6 +149,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
             {gameState.status === 'GAMEOVER' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
                     <h1 className="text-9xl text-white font-bold mb-8 tracking-tighter" style={{ textShadow: "0 0 20px white, 0 0 40px black" }}>GAME OVER</h1>
+                </div>
+            )}
+
+            {/* Enigma Penalty Indicator */}
+            {gameState.wrongAnswers > 0 && gameState.status === 'PLAYING' && gameState.timeLeft > gameState.config.gameDuration - 5 && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 text-red-600 text-2xl font-bold animate-bounce uppercase tracking-widest">
+                    Pénalité Énigme : -{gameState.wrongAnswers * 10}% Temps
                 </div>
             )}
         </>

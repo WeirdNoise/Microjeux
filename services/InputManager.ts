@@ -8,14 +8,15 @@ export class InputManager {
   
   // MIDI State Storage (Values decay for axes)
   private midiState = {
-      player: { x: 0, y: 0, tag: false, boost: false, teleport: false },
+      player: { x: 0, y: 0, tag: false, boost: false, teleport: false, ghost: false },
       barrier: { x: 0, y: 0, rotate: 0 },
       // Dog utilise uniquement les inputs du canal 1 désormais (index 0)
       dog: { x: 0, y: 0, boost: false },
-      oldMan: { x: 0, y: 0 }
+      oldMan: { x: 0, y: 0, cleanTrigger: false }
   };
 
   private prevMidiTag = false; // To detect MIDI note rising edge
+  private prevMidiClean = false; // To detect MIDI note rising edge for cleaning
   private lastDebugMessage: string = "MIDI: Waiting...";
   
   // Stockage des dernières valeurs CC et du dernier delta lissé
@@ -142,12 +143,25 @@ export class InputManager {
               const pressed = velocity > 0;
               if (note === 14) this.midiState.player.tag = pressed; // Bouton Blanc
               if (note === 15) this.midiState.player.boost = pressed; // Bouton Noir
+              if (note === 13) this.midiState.player.ghost = pressed; // Ghost Mode
               if (note === 1) this.midiState.player.teleport = pressed; 
           }
           if (type === 128) { // Note Off
               if (note === 14) this.midiState.player.tag = false;
               if (note === 15) this.midiState.player.boost = false;
+              if (note === 13) this.midiState.player.ghost = false;
               if (note === 1) this.midiState.player.teleport = false;
+          }
+      }
+
+      // Channel 2 (Hard 3) = Old Man
+      if (channel === 2) {
+          if (type === 144) {
+              const pressed = velocity > 0;
+              if (note === 14) this.midiState.oldMan.cleanTrigger = pressed;
+          }
+          if (type === 128) {
+              if (note === 14) this.midiState.oldMan.cleanTrigger = false;
           }
       }
   }
@@ -197,6 +211,9 @@ export class InputManager {
     const midiTagTrigger = this.midiState.player.tag && !this.prevMidiTag;
     this.prevMidiTag = this.midiState.player.tag;
 
+    const midiCleanTrigger = this.midiState.oldMan.cleanTrigger && !this.prevMidiClean;
+    this.prevMidiClean = this.midiState.oldMan.cleanTrigger;
+
     const inputState: InputState = {
       axisX: finalPlayerX,
       axisY: finalPlayerY,
@@ -204,6 +221,7 @@ export class InputManager {
       actionPrimaryTrigger: this.keysJustPressed.has('Space') || midiTagTrigger, // Just Pressed (Spam)
       actionSecondary: this.keysPressed.has('ShiftLeft') || this.keysPressed.has('ShiftRight') || this.midiState.player.boost,
       actionTertiary: this.keysPressed.has('KeyZ') || this.midiState.player.teleport,
+      actionGhost: this.midiState.player.ghost,
       actionCancel: this.keysPressed.has('KeyA'),
       
       enemies: {
@@ -219,7 +237,8 @@ export class InputManager {
           },
           oldMan: {
               axisX: this.midiState.oldMan.x,
-              axisY: this.midiState.oldMan.y
+              axisY: this.midiState.oldMan.y,
+              actionCleanTrigger: midiCleanTrigger
           }
       },
       debugMidi: this.lastDebugMessage

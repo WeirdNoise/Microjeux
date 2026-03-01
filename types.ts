@@ -25,13 +25,14 @@ export interface InputState {
   actionPrimaryTrigger: boolean; // Just pressed (for spamming)
   actionSecondary: boolean; // Boost / Scare
   actionTertiary: boolean; // Special (Teleport)
+  actionGhost: boolean; // Ghost mode (traversing walls)
   actionCancel: boolean;
 
   // Enemy Remote Controls (MIDI/OSC)
   enemies: {
       barrier: EntityInput;
       dog: EntityInput;
-      oldMan: EntityInput;
+      oldMan: EntityInput & { actionCleanTrigger?: boolean };
   };
   
   // Debug
@@ -76,10 +77,12 @@ export interface Player {
   radius: number;
   velocity: Vector2;
   isBoosting: boolean;
+  isGhosting: boolean;
   canTeleport: boolean;
   tagsCompleted: number;
   stunTimer: number; // New property: > 0 means cannot tag
   boostTimeLeft: number; // In seconds
+  ghostTimeLeft: number; // In seconds
   dogHits: number; // Count of times hit by a dog
   lastHitTime?: number; // Timestamp of last hit
   lastMoveDir: Vector2; // Memorize direction for boost latching
@@ -90,6 +93,8 @@ export interface GameConfig {
   dogCount: number;
   oldManCount: number;
   gameDuration: number; // Duration in seconds
+  tagSpamRequired: number; // Number of spams to tag a wall
+  difficulty: 'EASY' | 'NORMAL' | 'HARD';
 }
 
 export interface GameState {
@@ -103,6 +108,7 @@ export interface GameState {
   screenShake: number;
   audioEvents: string[]; // Queue of one-shot audio events to play this frame
   lastMidiDebug?: string; // Last raw MIDI message for debug
+  wrongAnswers: number; // Count of wrong answers in enigma
 }
 
 export interface Particle {

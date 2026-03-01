@@ -4,7 +4,7 @@ import { InputManager } from '../services/InputManager';
 
 interface MainMenuProps {
   initialConfig: GameConfig;
-  onStart: (config: GameConfig) => void;
+  onStart: (config: GameConfig, wrongAnswers: number) => void;
   inputManager: InputManager | null;
 }
 
@@ -234,6 +234,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
   const [isRiddleOpen, setIsRiddleOpen] = useState(false);
   const [currentRiddle, setCurrentRiddle] = useState(RIDDLES[0]);
   const [isWrongAnim, setIsWrongAnim] = useState(false);
+  const [wrongAnswers, setWrongAnswers] = useState(0);
 
   // --- CURSOR LOGIC ---
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -351,13 +352,15 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
       setCurrentRiddle(random);
       setIsWrongAnim(false);
       setIsRiddleOpen(true);
+      setWrongAnswers(0);
   };
 
   const checkAnswer = (index: number) => {
       if (index === currentRiddle.correct) {
-          onStart(config);
+          onStart(config, wrongAnswers);
       } else {
           setIsWrongAnim(true);
+          setWrongAnswers(prev => prev + 1);
           setTimeout(() => setIsWrongAnim(false), 500);
       }
   };
@@ -461,82 +464,109 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
 
       {/* --- MODALE PARAMÈTRES --- */}
       {isSettingsOpen && (
-        <div className="absolute inset-0 bg-black/95 flex items-center justify-center animate-in fade-in duration-200">
-          <div className="border-4 border-white p-8 max-w-5xl w-full text-center shadow-[0_0_50px_rgba(255,255,255,0.1)] relative">
+        <div className="absolute inset-0 bg-black/95 flex items-center justify-center animate-in fade-in duration-200 z-[200]">
+          <div className="border-4 border-white p-6 w-[95%] max-w-6xl text-center shadow-[0_0_50px_rgba(255,255,255,0.1)] relative flex flex-col max-h-[95vh]">
             
             {/* Header Settings */}
-            <div className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
-              <h2 className="text-4xl font-bold tracking-widest">PARAMÈTRES DE MISSION</h2>
+            <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4 shrink-0">
+              <h2 className="text-3xl font-bold tracking-widest">PARAMÈTRES DE MISSION</h2>
               <button onClick={() => setIsSettingsOpen(false)} className="hover:text-gray-400 focus:text-white focus:outline-none">
                 <CloseIcon />
               </button>
             </div>
-
-            {/* CONFIGURATION GRID */}
-            <div className="flex w-full justify-center gap-8 mb-8 flex-wrap">
-                <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
-                    <label className="mb-2 text-xl font-bold text-gray-400">MURS</label>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('wallCount', Math.max(1, config.wallCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
-                        <span className="text-4xl font-bold w-12">{config.wallCount}</span>
-                        <button onClick={() => handleChange('wallCount', Math.min(10, config.wallCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
-                    </div>
-                </div>
-                <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
-                    <label className="mb-2 text-xl font-bold text-gray-400">CHIENS</label>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('dogCount', Math.max(0, config.dogCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
-                        <span className="text-4xl font-bold w-12">{config.dogCount}</span>
-                        <button onClick={() => handleChange('dogCount', Math.min(2, config.dogCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
-                    </div>
-                </div>
-                <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
-                    <label className="mb-2 text-xl font-bold text-gray-400">VIEUX</label>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('oldManCount', Math.max(1, config.oldManCount - 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
-                        <span className="text-4xl font-bold w-12">{config.oldManCount}</span>
-                        <button onClick={() => handleChange('oldManCount', Math.min(10, config.oldManCount + 1))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
-                    </div>
-                </div>
-                 <div className="flex flex-col items-center min-w-[150px] p-4 border border-gray-800">
-                    <label className="mb-2 text-xl font-bold text-gray-400">TEMPS (s)</label>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => handleChange('gameDuration', Math.max(30, config.gameDuration - 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">-</button>
-                        <span className="text-4xl font-bold w-20">{config.gameDuration}</span>
-                        <button onClick={() => handleChange('gameDuration', Math.min(300, config.gameDuration + 30))} className="text-2xl px-3 border border-gray-600 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none">+</button>
-                    </div>
-                </div>
-            </div>
-
-            {/* HELP / COMMANDS */}
-            <div className="flex w-full justify-between gap-8 text-left pt-6 border-t border-gray-800">
-                <div className="w-1/3">
-                    <h3 className="text-xl underline mb-4 text-center text-gray-300">COMMANDES</h3>
-                    <ul className="space-y-2 text-sm text-gray-400">
-                        <li className="flex justify-between"><span className="font-bold text-white">FLÈCHES</span> <span>SE DÉPLACER</span></li>
-                        <li className="flex justify-between"><span className="font-bold text-white">ESPACE (SPAM)</span> <span>TAGUER</span></li>
-                        <li className="flex justify-between"><span className="font-bold text-white">SHIFT</span> <span>BOOST VITESSE</span></li>
-                        <li className="flex justify-between"><span className="font-bold text-white">Z</span> <span>TÉLÉPORTATION</span></li>
-                        <li className="flex justify-between"><span className="font-bold text-white">A</span> <span>ABANDONNER</span></li>
-                    </ul>
-                </div>
-                <div className="w-2/3 border-l border-gray-800 pl-8">
-                    <h3 className="text-xl underline mb-4 text-center text-gray-300">MIDI (AVANCÉ)</h3>
-                    <div className="grid grid-cols-3 gap-4 text-xs text-gray-400">
-                        <div className="border border-gray-700 p-2">
-                            <h4 className="font-bold mb-1 text-white text-center">CH 1: CHIEN</h4>
-                            <div className="flex justify-between"><span>POTS JAUNE/NOIR</span><span>MOVE</span></div>
-                            <div className="flex justify-between"><span>BTN NOIR</span><span>BOOST</span></div>
+            
+            <div className="overflow-y-auto pr-2 custom-scrollbar">
+                {/* CONFIGURATION GRID */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">MURS</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('wallCount', Math.max(1, config.wallCount - 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-8">{config.wallCount}</span>
+                            <button onClick={() => handleChange('wallCount', Math.min(10, config.wallCount + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
                         </div>
-                         <div className="border border-gray-700 p-2">
-                            <h4 className="font-bold mb-1 text-white text-center">CH 2: TCHIPEUR</h4>
-                            <div className="flex justify-between"><span>JOYSTICK</span><span>MOVE</span></div>
-                            <div className="flex justify-between"><span>BTN BLANC</span><span>TAG</span></div>
-                            <div className="flex justify-between"><span>BTN NOIR</span><span>BOOST</span></div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">CHIENS</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('dogCount', Math.max(0, config.dogCount - 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-8">{config.dogCount}</span>
+                            <button onClick={() => handleChange('dogCount', Math.min(2, config.dogCount + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
                         </div>
-                         <div className="border border-gray-700 p-2">
-                            <h4 className="font-bold mb-1 text-white text-center">CH 3: VIEUX</h4>
-                            <div className="flex justify-between"><span>POTS JAUNE/NOIR</span><span>MOVE</span></div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">VIEUX</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('oldManCount', Math.max(1, config.oldManCount - 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-8">{config.oldManCount}</span>
+                            <button onClick={() => handleChange('oldManCount', Math.min(10, config.oldManCount + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">TEMPS (s)</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('gameDuration', Math.max(30, config.gameDuration - 30))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-16">{config.gameDuration}</span>
+                            <button onClick={() => handleChange('gameDuration', Math.min(300, config.gameDuration + 30))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">SPAM TAG</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('tagSpamRequired', Math.max(5, config.tagSpamRequired - 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-12">{config.tagSpamRequired}</span>
+                            <button onClick={() => handleChange('tagSpamRequired', Math.min(100, config.tagSpamRequired + 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">DIFFICULTÉ</label>
+                        <div className="flex items-center gap-1">
+                            {['EASY', 'NORMAL', 'HARD'].map((d) => (
+                                <button 
+                                    key={d}
+                                    onClick={() => setConfig(prev => ({ ...prev, difficulty: d as any }))}
+                                    className={`px-2 py-1 text-[10px] border ${config.difficulty === d ? 'bg-white text-black border-white' : 'border-gray-600 text-gray-400 hover:border-white'}`}
+                                >
+                                    {d}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* HELP / COMMANDS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left pt-6 border-t border-gray-800">
+                    <div>
+                        <h3 className="text-lg underline mb-3 text-center text-gray-300 uppercase tracking-widest">Commandes Clavier</h3>
+                        <ul className="space-y-1 text-xs text-gray-400">
+                            <li className="flex justify-between"><span className="font-bold text-white">FLÈCHES</span> <span>SE DÉPLACER</span></li>
+                            <li className="flex justify-between"><span className="font-bold text-white">ESPACE (SPAM)</span> <span>TAGUER</span></li>
+                            <li className="flex justify-between"><span className="font-bold text-white">SHIFT</span> <span>BOOST VITESSE</span></li>
+                            <li className="flex justify-between"><span className="font-bold text-white">Z</span> <span>TÉLÉPORTATION</span></li>
+                            <li className="flex justify-between"><span className="font-bold text-white">A</span> <span>ABANDONNER</span></li>
+                        </ul>
+                    </div>
+                    <div className="border-l border-gray-800 pl-6">
+                        <h3 className="text-lg underline mb-3 text-center text-gray-300 uppercase tracking-widest">Contrôleurs MIDI</h3>
+                        <div className="space-y-3 text-[9px] text-gray-400">
+                            <div className="border border-gray-700 p-2 bg-white/5">
+                                <h4 className="font-bold mb-1 text-white text-center border-b border-gray-700 pb-1">CANAL 1: CHIEN</h4>
+                                <div className="flex justify-between"><span>POTS (CC 48/49)</span><span>DÉPLACEMENT</span></div>
+                                <div className="flex justify-between"><span>BTN NOIR (NOTE 15)</span><span>BOOST</span></div>
+                            </div>
+                            <div className="border border-gray-700 p-2 bg-white/5">
+                                <h4 className="font-bold mb-1 text-white text-center border-b border-gray-700 pb-1">CANAL 2: TCHIPEUR</h4>
+                                <div className="flex justify-between"><span>JOYSTICK (CC 48/49)</span><span>DÉPLACEMENT</span></div>
+                                <div className="flex justify-between"><span>BTN BLANC (NOTE 14)</span><span>TAG (SPAM)</span></div>
+                                <div className="flex justify-between"><span>BTN NOIR (NOTE 15)</span><span>BOOST</span></div>
+                                <div className="flex justify-between text-yellow-500"><span>SWITCH (NOTE 13)</span><span>GHOST MODE (20s)</span></div>
+                                <div className="flex justify-between"><span>BOUTON (NOTE 1)</span><span>TÉLÉPORTATION</span></div>
+                            </div>
+                            <div className="border border-gray-700 p-2 bg-white/5">
+                                <h4 className="font-bold mb-1 text-white text-center border-b border-gray-700 pb-1">CANAL 3: VIEUX</h4>
+                                <div className="flex justify-between"><span>POTS (CC 48/49)</span><span>DÉPLACEMENT</span></div>
+                                <div className="flex justify-between text-blue-400"><span>BTN BLANC (NOTE 14)</span><span>NETTOYER TAG (SPAM)</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>

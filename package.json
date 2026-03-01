@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "dist": "vite build && electron-builder"
+    "dist": "vite build && electron-builder",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "react": "^18.2.0",

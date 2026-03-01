@@ -79,25 +79,31 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.beginPath();
         ctx.rect(wall.x, wall.y, wall.width, wall.height);
         ctx.clip();
-        ctx.strokeStyle = primaryColor;
-        ctx.lineWidth = 2;
+        
         const seed = wall.x * 1000 + wall.y;
         const pseudoRandom = (offset: number) => {
             const x = Math.sin(seed + offset) * 10000;
             return x - Math.floor(x);
         };
-        ctx.beginPath();
+
+        const colors = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"];
+
         for (let i = 0; i < 20; i++) {
+            ctx.beginPath();
+            ctx.strokeStyle = colors[Math.floor(pseudoRandom(i * 7) * colors.length)];
+            ctx.lineWidth = 2 + pseudoRandom(i * 8) * 2;
+            
             const startX = wall.x + pseudoRandom(i * 1) * wall.width;
             const startY = wall.y + pseudoRandom(i * 2) * wall.height;
             const endX = wall.x + pseudoRandom(i * 3) * wall.width;
             const endY = wall.y + pseudoRandom(i * 4) * wall.height;
             const ctrlX = wall.x + pseudoRandom(i * 5) * wall.width;
             const ctrlY = wall.y + pseudoRandom(i * 6) * wall.height;
+            
             ctx.moveTo(startX, startY);
             ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+            ctx.stroke();
         }
-        ctx.stroke();
         ctx.restore();
     };
 
@@ -204,8 +210,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
 
     // Player
     const isStunned = gameState.player.stunTimer > 0;
+    const isGhosting = gameState.player.isGhosting;
+    
     if (!isStunned || Math.floor(Date.now() / 50) % 2 === 0) {
+        ctx.save();
+        if (isGhosting) {
+            ctx.globalAlpha *= 0.5;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "cyan";
+        }
         drawPlayerHatched(gameState.player.x, gameState.player.y, gameState.player.radius);
+        ctx.restore();
     }
 
     // Particles

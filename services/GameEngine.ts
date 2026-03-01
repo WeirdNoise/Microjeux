@@ -18,7 +18,8 @@ import {
   DOG_BOOST_SPEED,
   OLD_MAN_SPEED,
   PLAYER_RADIUS,
-  PLAYER_MAX_BOOST_TIME
+  PLAYER_MAX_BOOST_TIME,
+  PLAYER_MAX_GHOST_TIME
 } from '../constants';
 
 // --- PHYSICS HELPERS ---
@@ -43,7 +44,8 @@ const moveEntity = (
   width: number, 
   height: number, 
   walls: Wall[],
-  isCircle: boolean = false
+  isCircle: boolean = false,
+  isGhost: boolean = false
 ): { x: number, y: number, hitWall: boolean } => {
   
   let newX = x;
@@ -66,7 +68,7 @@ const moveEntity = (
       else newX = nextX;
   }
 
-  if (!collisionX) {
+  if (!collisionX && !isGhost) {
       for (const wall of walls) {
           const isHit = isCircle 
               ? checkCircleRect(newX, y, radius, wall.x, wall.y, wall.width, wall.height)
@@ -95,7 +97,7 @@ const moveEntity = (
       else newY = nextY;
   }
 
-  if (!collisionY) {
+  if (!collisionY && !isGhost) {
       for (const wall of walls) {
           const isHit = isCircle 
               ? checkCircleRect(newX, nextY, radius, wall.x, wall.y, wall.width, wall.height)
@@ -219,10 +221,12 @@ export const createInitialState = (config: GameConfig): GameState => {
       radius: PLAYER_RADIUS,
       velocity: { x: 0, y: 0 },
       isBoosting: false,
+      isGhosting: false,
       canTeleport: true,
       tagsCompleted: 0,
       stunTimer: 0,
       boostTimeLeft: PLAYER_MAX_BOOST_TIME,
+      ghostTimeLeft: PLAYER_MAX_GHOST_TIME,
       dogHits: 0,
       lastHitTime: 0,
       lastMoveDir: { x: 0, y: 0 } // Init direction
@@ -232,7 +236,8 @@ export const createInitialState = (config: GameConfig): GameState => {
     particles: [],
     screenShake: 0,
     audioEvents: [],
-    lastMidiDebug: "Waiting..."
+    lastMidiDebug: "Waiting...",
+    wrongAnswers: 0
   };
 };
 
@@ -243,6 +248,8 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   const newState = { 
     ...state, 
     player: { ...state.player }, 
+    walls: state.walls.map(w => ({ ...w })),
+    enemies: state.enemies.map(e => ({ ...e })),
     audioEvents: [] as string[],
     lastMidiDebug: input.debugMidi || state.lastMidiDebug
   };
@@ -273,6 +280,11 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   let isBoosting = input.actionSecondary && newState.player.boostTimeLeft > 0;
   if (isBoosting) newState.player.boostTimeLeft = Math.max(0, newState.player.boostTimeLeft - 1/60);
   newState.player.isBoosting = isBoosting;
+
+  let isGhosting = input.actionGhost && newState.player.ghostTimeLeft > 0;
+  if (isGhosting) newState.player.ghostTimeLeft = Math.max(0, newState.player.ghostTimeLeft - 1/60);
+  newState.player.isGhosting = isGhosting;
+
   if (newState.player.stunTimer > 0) newState.player.stunTimer--;
 
   // Direction logic with Boost "Cruise Control"
@@ -321,7 +333,8 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       vx, vy, 
       newState.player.radius * 2, newState.player.radius * 2, 
       newState.walls, 
-      true
+      true,
+      isGhosting
   );
   newState.player.x = pMove.x;
   newState.player.y = pMove.y;
@@ -330,8 +343,8 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   if (input.actionPrimaryTrigger && newState.player.stunTimer <= 0) {
     let closestWall: Wall | null = null;
     let minDistance = 9999;
-    const TAG_REACH = PLAYER_RADIUS + 25;
-    const TAG_MARGIN = 10;
+    const TAG_REACH = PLAYER_RADIUS + 40;
+    const TAG_MARGIN = 30;
 
     newState.walls.forEach(wall => {
       if (!wall.isTagged) {
@@ -359,7 +372,8 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
     if (closestWall) {
        const wall = closestWall as Wall;
-       wall.tagProgress += 4; 
+       const increment = 100 / state.config.tagSpamRequired;
+       wall.tagProgress += increment; 
        newState.audioEvents.push('SPRAY'); // Trigger spray sound
        for(let i=0; i<5; i++) {
            newState.particles.push({
@@ -371,7 +385,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               color: '#EEE'
           });
        }
-       if (wall.tagProgress >= TAG_TIME_REQUIRED) {
+       if (wall.tagProgress >= TAG_TIME_REQUIRED - 0.1) {
           if (!wall.isTagged) {
               wall.isTagged = true;
               wall.completedTime = Date.now();
@@ -384,11 +398,16 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   }
 
   // 3. ENEMY LOGIC
+  const difficultyMultiplier = state.config.difficulty === 'EASY' ? 0.8 : state.config.difficulty === 'HARD' ? 1.2 : 1.0;
+
   newState.enemies.forEach(enemy => {
       let evx = 0, evy = 0;
       let inputSource = enemy.type === EntityType.DOG ? input.enemies.dog : input.enemies.oldMan;
       
-      // DÉTECTION MODE MANUEL & MISE À JOUR INPUTS CHIEN
+      const baseOldManSpeed = OLD_MAN_SPEED * difficultyMultiplier;
+      const baseDogSpeed = DOG_SPEED * difficultyMultiplier;
+      const baseDogSprintSpeed = DOG_SPRINT_SPEED * difficultyMultiplier;
+      const baseDogBoostSpeed = DOG_BOOST_SPEED * difficultyMultiplier;
       
       // Pour le chien, on utilise désormais le Channel 1 (inputs standards) pour le boost
       if (enemy.type === EntityType.DOG) {
@@ -427,7 +446,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           if (enemy.type === EntityType.DOG && enemy.isBoosting) {
               // --- MODE BOOST CHIEN (CHANNEL 1 BOUTON NOIR) ---
               // Vitesse fixe de boost, direction basée sur lastMoveDir
-              const boostSpeed = DOG_BOOST_SPEED; 
+              const boostSpeed = baseDogBoostSpeed; 
               const dir = enemy.lastMoveDir || {x: 1, y: 0};
               evx = dir.x * boostSpeed;
               evy = dir.y * boostSpeed;
@@ -435,7 +454,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           } 
           else {
               // --- MODE MANUEL CLASSIQUE ---
-              let mSpeed = (enemy.type === EntityType.DOG ? DOG_SPEED : OLD_MAN_SPEED) * 1.5;
+              let mSpeed = (enemy.type === EntityType.DOG ? baseDogSpeed : baseOldManSpeed) * 1.5;
               
               if (enemy.type === EntityType.DOG) {
                   mSpeed *= (enemy.randomSpeedFactor || 1);
@@ -444,6 +463,27 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               evx = inputSource.axisX * mSpeed;
               evy = inputSource.axisY * mSpeed;
               enemy.velocity = {x: evx, y: evy};
+          }
+          
+          // --- LOGIQUE NETTOYAGE VIEUX ---
+          if (enemy.type === EntityType.OLD_MAN && input.enemies.oldMan.actionCleanTrigger) {
+              let targetWall: Wall | null = null;
+              let minDist = 100;
+              for (const wall of newState.walls) {
+                  if (!wall.isTagged && wall.tagProgress > 0) {
+                      const dx = enemy.x - (wall.x + wall.width/2);
+                      const dy = enemy.y - (wall.y + wall.height/2);
+                      const dist = Math.sqrt(dx*dx + dy*dy);
+                      if (dist < minDist) {
+                          minDist = dist;
+                          targetWall = wall;
+                      }
+                  }
+              }
+              if (targetWall) {
+                  targetWall.tagProgress = Math.max(0, targetWall.tagProgress - 10);
+                  newState.audioEvents.push('SPRAY'); 
+              }
           }
           
           if (enemy.state !== 'chasing' && enemy.state !== 'idle') {
@@ -469,15 +509,15 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
                if (Math.random() < 0.02) {
                    const angle = Math.random() * Math.PI * 2;
-                   evx = Math.cos(angle) * OLD_MAN_SPEED;
-                   evy = Math.sin(angle) * OLD_MAN_SPEED;
+                   evx = Math.cos(angle) * baseOldManSpeed;
+                   evy = Math.sin(angle) * baseOldManSpeed;
                }
 
                const len = Math.sqrt(evx*evx + evy*evy);
                if (len > 0) {
-                   evx = (evx / len) * OLD_MAN_SPEED;
-                   evy = (evy / len) * OLD_MAN_SPEED;
-               } else { evx = OLD_MAN_SPEED; }
+                   evx = (evx / len) * baseOldManSpeed;
+                   evy = (evy / len) * baseOldManSpeed;
+               } else { evx = baseOldManSpeed; }
                
                enemy.velocity = {x: evx, y: evy};
           }
@@ -485,10 +525,10 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               const dx = newState.player.x - enemy.x;
               const dy = newState.player.y - enemy.y;
               const distToTarget = Math.sqrt(dx*dx + dy*dy);
-              let currentSpeed = DOG_SPEED;
+              let currentSpeed = baseDogSpeed;
               if (enemy.sprintTimer && enemy.sprintTimer > 0) {
                   enemy.sprintTimer--;
-                  currentSpeed = DOG_SPRINT_SPEED;
+                  currentSpeed = baseDogSprintSpeed;
               } else if (Math.random() < 0.005) enemy.sprintTimer = 120;
 
               if (distToTarget > 10) {

@@ -14,7 +14,9 @@ const DEFAULT_CONFIG: GameConfig = {
     wallCount: 5, 
     dogCount: 1, 
     oldManCount: 1,
-    gameDuration: 180
+    gameDuration: 180,
+    tagSpamRequired: 25,
+    difficulty: 'NORMAL'
 };
 
 const App: React.FC = () => {
@@ -52,7 +54,7 @@ const App: React.FC = () => {
   }, []);
 
   // Initialisation Audio au premier clic (Start Game)
-  const startGame = async (config: GameConfig) => {
+  const startGame = async (config: GameConfig, wrongAnswers: number) => {
     try {
         await sfx.current.resume();
         // Le changement d'état vers PLAYING déclenchera la musique via le useEffect
@@ -62,7 +64,17 @@ const App: React.FC = () => {
 
     currentConfig.current = config;
     const initial = createInitialState(config);
-    setGameState({ ...initial, status: 'PLAYING' });
+    
+    // Apply penalty: 10% reduction per wrong answer
+    const penaltyFactor = Math.max(0, 1 - (wrongAnswers * 0.1));
+    const finalTime = initial.timeLeft * penaltyFactor;
+
+    setGameState({ 
+        ...initial, 
+        status: 'PLAYING', 
+        timeLeft: finalTime,
+        wrongAnswers: wrongAnswers 
+    });
   };
 
   // --- GESTION MUSIQUE D'AMBIANCE ---
@@ -124,13 +136,14 @@ const App: React.FC = () => {
   const loop = useCallback(() => {
     if (!inputManager.current) return;
 
+    const input = inputManager.current.getInput();
+
     setGameState(prevState => {
       // Important: Même en menu, on continue de mettre à jour le state pour laisser
       // le cycle React se faire si nécessaire, ou on laisse le menu gérer sa propre boucle.
       // Ici, on bloque la mise à jour du JEU, mais inputManager continue de tourner.
       if (prevState.status === 'MENU') return prevState;
       
-      const input = inputManager.current!.getInput();
       return updateGameState(prevState, input);
     });
 

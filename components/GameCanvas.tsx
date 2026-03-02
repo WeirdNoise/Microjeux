@@ -131,10 +131,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.restore();
     };
 
-    const drawPlayerHatched = (x: number, y: number, r: number) => {
+    const drawPlayerHatched = (x: number, y: number, r: number, color: string = primaryColor) => {
         ctx.save();
         ctx.translate(x, y);
-        ctx.strokeStyle = primaryColor;
+        ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -214,12 +214,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
     
     if (!isStunned || Math.floor(Date.now() / 50) % 2 === 0) {
         ctx.save();
+        const playerColor = isGhosting ? "cyan" : primaryColor;
         if (isGhosting) {
             ctx.globalAlpha *= 0.5;
             ctx.shadowBlur = 10;
             ctx.shadowColor = "cyan";
         }
-        drawPlayerHatched(gameState.player.x, gameState.player.y, gameState.player.radius);
+        drawPlayerHatched(gameState.player.x, gameState.player.y, gameState.player.radius, playerColor);
         ctx.restore();
     }
 

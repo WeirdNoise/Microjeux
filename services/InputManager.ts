@@ -220,8 +220,8 @@ export class InputManager {
       actionPrimary: this.keysPressed.has('Space') || this.midiState.player.tag, // Held
       actionPrimaryTrigger: this.keysJustPressed.has('Space') || midiTagTrigger, // Just Pressed (Spam)
       actionSecondary: this.keysPressed.has('ShiftLeft') || this.keysPressed.has('ShiftRight') || this.midiState.player.boost,
-      actionTertiary: this.keysPressed.has('KeyZ') || this.midiState.player.teleport,
-      actionGhost: this.midiState.player.ghost,
+      actionTertiary: this.midiState.player.teleport,
+      actionGhost: this.keysPressed.has('KeyS') || this.midiState.player.ghost,
       actionCancel: this.keysPressed.has('KeyA'),
       
       enemies: {

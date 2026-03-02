@@ -229,6 +229,8 @@ const RIDDLES = [
 const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManager }) => {
   const [config, setConfig] = useState<GameConfig>(initialConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCommandsOpen, setIsCommandsOpen] = useState(false);
+  const [isHoveringStart, setIsHoveringStart] = useState(false);
   
   // Riddle State
   const [isRiddleOpen, setIsRiddleOpen] = useState(false);
@@ -380,6 +382,14 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
     </svg>
   );
 
+  const HelpIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+  );
+
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white">
       
@@ -393,8 +403,28 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_5px_white]"></div>
       </div>
 
+      {/* --- BACKGROUND SCRIBBLES (Visible on Hover) --- */}
+      <div className={`absolute inset-0 pointer-events-none z-0 transition-opacity duration-500 ${isHoveringStart ? 'opacity-100' : 'opacity-0'}`}>
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path d="M-10,50 Q25,10 50,50 T110,50" vectorEffect="non-scaling-stroke" stroke="#FF0055" strokeWidth="4" fill="none" className="animate-pulse" style={{filter: 'blur(1px)'}} />
+              <path d="M-10,80 Q40,120 110,20" vectorEffect="non-scaling-stroke" stroke="#00FF55" strokeWidth="5" fill="none" className="animate-pulse delay-100" style={{filter: 'blur(1px)'}} />
+              <path d="M20,-10 Q50,90 80,-10" vectorEffect="non-scaling-stroke" stroke="#0055FF" strokeWidth="4" fill="none" className="animate-pulse delay-200" style={{filter: 'blur(1px)'}} />
+              <path d="M90,110 Q10,10 -10,90" vectorEffect="non-scaling-stroke" stroke="#FFFF00" strokeWidth="6" fill="none" style={{filter: 'blur(1px)'}} />
+              
+              {/* Random chaotic lines */}
+              <path d="M0,0 L100,100" vectorEffect="non-scaling-stroke" stroke="#FF00FF" strokeWidth="2" strokeDasharray="5,5" opacity="0.5" />
+              <path d="M100,0 L0,100" vectorEffect="non-scaling-stroke" stroke="#00FFFF" strokeWidth="2" strokeDasharray="5,5" opacity="0.5" />
+              
+              {/* Shapes */}
+              <circle cx="20" cy="30" r="5" stroke="#FF5500" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" />
+              <circle cx="80" cy="70" r="8" stroke="#AA00FF" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" />
+              <rect x="10" y="80" width="10" height="10" stroke="#00FF00" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" transform="rotate(15 15 85)" />
+              <rect x="80" y="10" width="15" height="15" stroke="#FF0000" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" transform="rotate(-10 87.5 17.5)" />
+          </svg>
+      </div>
+
       {/* --- ÉCRAN ACCUEIL --- */}
-      <div className={`flex flex-col items-center transition-opacity duration-300 ${isSettingsOpen || isRiddleOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`relative z-10 flex flex-col items-center transition-opacity duration-300 ${isSettingsOpen || isRiddleOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <h1 className="text-9xl font-bold mb-12 tracking-tighter animate-pulse" style={{ textShadow: "0 0 40px rgba(255,255,255,0.3)" }}>
             LE TCHIPEUR
           </h1>
@@ -402,20 +432,30 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           <button 
               id="btn-start-game"
               onClick={handleStartRequest}
+              onMouseEnter={() => setIsHoveringStart(true)}
+              onMouseLeave={() => setIsHoveringStart(false)}
               className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none transition-colors duration-200 uppercase tracking-widest"
           >
               COLORIE TA VILLE
           </button>
       </div>
 
-      {/* Bouton Settings (en haut à droite) */}
-      {!isSettingsOpen && !isRiddleOpen && (
-        <button 
-          onClick={() => setIsSettingsOpen(true)}
-          className="absolute top-8 right-8 p-4 border border-transparent hover:border-white focus:border-white focus:outline-none rounded-full transition-all text-gray-500 hover:text-white focus:text-white"
-        >
-          <GearIcon />
-        </button>
+      {/* Boutons Settings & Help (en haut à droite) */}
+      {!isSettingsOpen && !isRiddleOpen && !isCommandsOpen && (
+        <div className="absolute top-8 right-8 flex gap-4">
+            <button 
+            onClick={() => setIsCommandsOpen(true)}
+            className="p-4 border border-transparent hover:border-white focus:border-white focus:outline-none rounded-full transition-all text-gray-500 hover:text-white focus:text-white"
+            >
+            <HelpIcon />
+            </button>
+            <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-4 border border-transparent hover:border-white focus:border-white focus:outline-none rounded-full transition-all text-gray-500 hover:text-white focus:text-white"
+            >
+            <GearIcon />
+            </button>
+        </div>
       )}
 
       {/* --- MODALE ÉNIGME --- */}
@@ -533,16 +573,34 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* HELP / COMMANDS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left pt-6 border-t border-gray-800">
+          </div>
+        </div>
+      )}
+
+      {/* --- MODALE COMMANDES --- */}
+      {isCommandsOpen && (
+        <div className="absolute inset-0 bg-black/95 flex items-center justify-center animate-in fade-in duration-200 z-[200]">
+          <div className="border-4 border-white p-6 w-[95%] max-w-6xl text-center shadow-[0_0_50px_rgba(255,255,255,0.1)] relative flex flex-col max-h-[95vh]">
+            
+            {/* Header Commands */}
+            <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4 shrink-0">
+              <h2 className="text-3xl font-bold tracking-widest">COMMANDES DE MISSION</h2>
+              <button onClick={() => setIsCommandsOpen(false)} className="hover:text-gray-400 focus:text-white focus:outline-none">
+                <CloseIcon />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left pt-2">
                     <div>
                         <h3 className="text-lg underline mb-3 text-center text-gray-300 uppercase tracking-widest">Commandes Clavier</h3>
-                        <ul className="space-y-1 text-xs text-gray-400">
+                        <ul className="space-y-2 text-xs text-gray-400">
                             <li className="flex justify-between"><span className="font-bold text-white">FLÈCHES</span> <span>SE DÉPLACER</span></li>
                             <li className="flex justify-between"><span className="font-bold text-white">ESPACE (SPAM)</span> <span>TAGUER</span></li>
                             <li className="flex justify-between"><span className="font-bold text-white">SHIFT</span> <span>BOOST VITESSE</span></li>
-                            <li className="flex justify-between"><span className="font-bold text-white">Z</span> <span>TÉLÉPORTATION</span></li>
+                            <li className="flex justify-between"><span className="font-bold text-white">S (MAINTENIR)</span> <span>MODE FANTÔME</span></li>
                             <li className="flex justify-between"><span className="font-bold text-white">A</span> <span>ABANDONNER</span></li>
                         </ul>
                     </div>
@@ -560,7 +618,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                                 <div className="flex justify-between"><span>BTN BLANC (NOTE 14)</span><span>TAG (SPAM)</span></div>
                                 <div className="flex justify-between"><span>BTN NOIR (NOTE 15)</span><span>BOOST</span></div>
                                 <div className="flex justify-between text-yellow-500"><span>SWITCH (NOTE 13)</span><span>GHOST MODE (20s)</span></div>
-                                <div className="flex justify-between"><span>BOUTON (NOTE 1)</span><span>TÉLÉPORTATION</span></div>
                             </div>
                             <div className="border border-gray-700 p-2 bg-white/5">
                                 <h4 className="font-bold mb-1 text-white text-center border-b border-gray-700 pb-1">CANAL 3: VIEUX</h4>
@@ -571,7 +628,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                     </div>
                 </div>
             </div>
-
           </div>
         </div>
       )}

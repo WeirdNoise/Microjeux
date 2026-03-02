@@ -306,28 +306,6 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   const vy = dirY * speed;
   newState.player.velocity = { x: vx, y: vy };
 
-  if (input.actionTertiary && newState.player.canTeleport) {
-    let safeSpot = false;
-    let attempts = 0;
-    while(!safeSpot && attempts < 10) {
-        attempts++;
-        const tx = Math.random() * (GAME_WIDTH - 100) + 50;
-        const ty = Math.random() * (GAME_HEIGHT - 100) + 50;
-        const hit = newState.walls.some(w => checkCircleRect(tx, ty, newState.player.radius + 10, w.x, w.y, w.width, w.height));
-        if (!hit) {
-            newState.player.x = tx;
-            newState.player.y = ty;
-            safeSpot = true;
-        }
-    }
-    newState.player.canTeleport = false;
-    for(let i=0; i<20; i++) newState.particles.push({
-            x: newState.player.x, y: newState.player.y,
-            vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
-            life: 20, color: '#FFF'
-    });
-  }
-
   const pMove = moveEntity(
       newState.player.x, newState.player.y, 
       vx, vy, 

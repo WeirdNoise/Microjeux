@@ -15,6 +15,8 @@ const DEFAULT_CONFIG: GameConfig = {
     dogCount: 1, 
     oldManCount: 1,
     gameDuration: 180,
+    boostDuration: 11,
+    ghostDuration: 20,
     tagSpamRequired: 25,
     difficulty: 'NORMAL'
 };

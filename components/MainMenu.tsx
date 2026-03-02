@@ -230,7 +230,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
   const [config, setConfig] = useState<GameConfig>(initialConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCommandsOpen, setIsCommandsOpen] = useState(false);
-  const [isHoveringStart, setIsHoveringStart] = useState(false);
   
   // Riddle State
   const [isRiddleOpen, setIsRiddleOpen] = useState(false);
@@ -403,26 +402,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_5px_white]"></div>
       </div>
 
-      {/* --- BACKGROUND SCRIBBLES (Visible on Hover) --- */}
-      <div className={`absolute inset-0 pointer-events-none z-0 transition-opacity duration-500 ${isHoveringStart ? 'opacity-100' : 'opacity-0'}`}>
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M-10,50 Q25,10 50,50 T110,50" vectorEffect="non-scaling-stroke" stroke="#FF0055" strokeWidth="4" fill="none" className="animate-pulse" style={{filter: 'blur(1px)'}} />
-              <path d="M-10,80 Q40,120 110,20" vectorEffect="non-scaling-stroke" stroke="#00FF55" strokeWidth="5" fill="none" className="animate-pulse delay-100" style={{filter: 'blur(1px)'}} />
-              <path d="M20,-10 Q50,90 80,-10" vectorEffect="non-scaling-stroke" stroke="#0055FF" strokeWidth="4" fill="none" className="animate-pulse delay-200" style={{filter: 'blur(1px)'}} />
-              <path d="M90,110 Q10,10 -10,90" vectorEffect="non-scaling-stroke" stroke="#FFFF00" strokeWidth="6" fill="none" style={{filter: 'blur(1px)'}} />
-              
-              {/* Random chaotic lines */}
-              <path d="M0,0 L100,100" vectorEffect="non-scaling-stroke" stroke="#FF00FF" strokeWidth="2" strokeDasharray="5,5" opacity="0.5" />
-              <path d="M100,0 L0,100" vectorEffect="non-scaling-stroke" stroke="#00FFFF" strokeWidth="2" strokeDasharray="5,5" opacity="0.5" />
-              
-              {/* Shapes */}
-              <circle cx="20" cy="30" r="5" stroke="#FF5500" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" />
-              <circle cx="80" cy="70" r="8" stroke="#AA00FF" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" />
-              <rect x="10" y="80" width="10" height="10" stroke="#00FF00" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" transform="rotate(15 15 85)" />
-              <rect x="80" y="10" width="15" height="15" stroke="#FF0000" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" transform="rotate(-10 87.5 17.5)" />
-          </svg>
-      </div>
-
       {/* --- ÉCRAN ACCUEIL --- */}
       <div className={`relative z-10 flex flex-col items-center transition-opacity duration-300 ${isSettingsOpen || isRiddleOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <h1 className="text-9xl font-bold mb-12 tracking-tighter animate-pulse" style={{ textShadow: "0 0 40px rgba(255,255,255,0.3)" }}>
@@ -432,8 +411,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           <button 
               id="btn-start-game"
               onClick={handleStartRequest}
-              onMouseEnter={() => setIsHoveringStart(true)}
-              onMouseLeave={() => setIsHoveringStart(false)}
               className="text-5xl border-4 border-white px-16 py-6 hover:bg-white hover:text-black focus:bg-white focus:text-black focus:outline-none transition-colors duration-200 uppercase tracking-widest"
           >
               COLORIE TA VILLE
@@ -548,6 +525,22 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                             <button onClick={() => handleChange('gameDuration', Math.max(30, config.gameDuration - 30))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
                             <span className="text-2xl font-bold w-16">{config.gameDuration}</span>
                             <button onClick={() => handleChange('gameDuration', Math.min(300, config.gameDuration + 30))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">BOOST (s)</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('boostDuration', Math.max(5, config.boostDuration - 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-12">{config.boostDuration}</span>
+                            <button onClick={() => handleChange('boostDuration', Math.min(30, config.boostDuration + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">FANTÔME (s)</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('ghostDuration', Math.max(5, config.ghostDuration - 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-12">{config.ghostDuration}</span>
+                            <button onClick={() => handleChange('ghostDuration', Math.min(60, config.ghostDuration + 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
                         </div>
                     </div>
                     <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">

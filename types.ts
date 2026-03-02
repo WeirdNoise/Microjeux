@@ -69,6 +69,10 @@ export interface Enemy {
   // Logic spécifique au Boost Chien
   isBoosting?: boolean; 
   lastMoveDir?: Vector2;
+
+  // Logic spécifique au Vieux (Anti-Stuck)
+  lastPosition?: Vector2;
+  stuckCheckTimer?: number;
 }
 
 export interface Player {
@@ -93,6 +97,8 @@ export interface GameConfig {
   dogCount: number;
   oldManCount: number;
   gameDuration: number; // Duration in seconds
+  boostDuration: number; // Duration in seconds
+  ghostDuration: number; // Duration in seconds
   tagSpamRequired: number; // Number of spams to tag a wall
   difficulty: 'EASY' | 'NORMAL' | 'HARD';
 }

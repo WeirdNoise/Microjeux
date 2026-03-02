@@ -225,8 +225,8 @@ export const createInitialState = (config: GameConfig): GameState => {
       canTeleport: true,
       tagsCompleted: 0,
       stunTimer: 0,
-      boostTimeLeft: PLAYER_MAX_BOOST_TIME,
-      ghostTimeLeft: PLAYER_MAX_GHOST_TIME,
+      boostTimeLeft: config.boostDuration,
+      ghostTimeLeft: config.ghostDuration,
       dogHits: 0,
       lastHitTime: 0,
       lastMoveDir: { x: 0, y: 0 } // Init direction
@@ -281,9 +281,43 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   if (isBoosting) newState.player.boostTimeLeft = Math.max(0, newState.player.boostTimeLeft - 1/60);
   newState.player.isBoosting = isBoosting;
 
+  const wasGhosting = newState.player.isGhosting;
   let isGhosting = input.actionGhost && newState.player.ghostTimeLeft > 0;
   if (isGhosting) newState.player.ghostTimeLeft = Math.max(0, newState.player.ghostTimeLeft - 1/60);
   newState.player.isGhosting = isGhosting;
+
+  // GHOST POP-OUT LOGIC
+  // If ghost mode ends while inside a wall, push player out to the nearest edge
+  if (wasGhosting && !isGhosting) {
+      const pX = newState.player.x;
+      const pY = newState.player.y;
+      const pR = newState.player.radius;
+      
+      for (const wall of newState.walls) {
+          if (checkCircleRect(pX, pY, pR, wall.x, wall.y, wall.width, wall.height)) {
+              // We are inside this wall. Find closest edge.
+              // Distances to edges:
+              const distLeft = Math.abs(pX - wall.x);
+              const distRight = Math.abs(pX - (wall.x + wall.width));
+              const distTop = Math.abs(pY - wall.y);
+              const distBottom = Math.abs(pY - (wall.y + wall.height));
+              
+              const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+              
+              // Apply push-out with a small margin
+              const POP_MARGIN = pR + 5; 
+              
+              if (minDist === distLeft) newState.player.x = wall.x - POP_MARGIN;
+              else if (minDist === distRight) newState.player.x = wall.x + wall.width + POP_MARGIN;
+              else if (minDist === distTop) newState.player.y = wall.y - POP_MARGIN;
+              else if (minDist === distBottom) newState.player.y = wall.y + wall.height + POP_MARGIN;
+              
+              // Stop velocity to prevent re-entering immediately
+              newState.player.velocity = { x: 0, y: 0 };
+              break; // Handle one wall collision at a time (simplification)
+          }
+      }
+  }
 
   if (newState.player.stunTimer > 0) newState.player.stunTimer--;
 
@@ -496,6 +530,30 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
                    evx = (evx / len) * baseOldManSpeed;
                    evy = (evy / len) * baseOldManSpeed;
                } else { evx = baseOldManSpeed; }
+               
+               // --- OLD MAN STUCK DETECTION ---
+               if (!enemy.lastPosition) enemy.lastPosition = { x: enemy.x, y: enemy.y };
+               if (!enemy.stuckCheckTimer) enemy.stuckCheckTimer = 0;
+               
+               enemy.stuckCheckTimer++;
+               if (enemy.stuckCheckTimer > 300) { // 5 seconds at 60fps
+                   const dx = enemy.x - enemy.lastPosition.x;
+                   const dy = enemy.y - enemy.lastPosition.y;
+                   const distMoved = Math.sqrt(dx*dx + dy*dy);
+                   
+                   if (distMoved < 100) { // Hasn't moved 100px in 5 seconds -> STUCK
+                       // Force a random direction away from current velocity or towards center
+                       const escapeAngle = Math.random() * Math.PI * 2;
+                       evx = Math.cos(escapeAngle) * baseOldManSpeed * 2; // Burst speed
+                       evy = Math.sin(escapeAngle) * baseOldManSpeed * 2;
+                       // Reset timer but give a grace period (negative value) to allow escape
+                       enemy.stuckCheckTimer = -120; // 2 seconds of freedom
+                   } else {
+                       // Reset tracking
+                       enemy.lastPosition = { x: enemy.x, y: enemy.y };
+                       enemy.stuckCheckTimer = 0;
+                   }
+               }
                
                enemy.velocity = {x: evx, y: evy};
           }

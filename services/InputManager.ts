@@ -11,13 +11,15 @@ export class InputManager {
       player: { x: 0, y: 0, tag: false, boost: false, teleport: false, ghost: false },
       barrier: { x: 0, y: 0, rotate: 0 },
       // Dog utilise uniquement les inputs du canal 1 désormais (index 0)
-      dog: { x: 0, y: 0, boost: false },
-      oldMan: { x: 0, y: 0, cleanTrigger: false }
+      dog: { x: 0, y: 0, boost: false, grow: false, pipi: false },
+      oldMan: { x: 0, y: 0, cleanTrigger: false, slowZoneTrigger: false, dispersionTrigger: false }
   };
 
   private prevMidiTag = false; // To detect MIDI note rising edge
   private prevMidiClean = false; // To detect MIDI note rising edge for cleaning
+  private prevMidiPipi = false; // To detect MIDI note rising edge for dog pipi
   private lastDebugMessage: string = "MIDI: Waiting...";
+  private invertVertical = false;
   
   // Stockage des dernières valeurs CC et du dernier delta lissé
   private lastMidiData: Map<string, { val: number, smoothDelta: number }> = new Map();
@@ -120,11 +122,12 @@ export class InputManager {
           // Invert=TRUE demandé (Modification) : Incrément -> Haut (-Y)
           if (note === 49) {
               const delta = processDelta(channel, note, velocity);
-              if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, true);
-              if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, true);
+              const shouldInvert = !this.invertVertical; // Default was inverted (true)
+              if (channel === 0) this.midiState.dog.y = updateAxis(this.midiState.dog.y, delta, shouldInvert);
+              if (channel === 1) this.midiState.player.y = updateAxis(this.midiState.player.y, delta, shouldInvert);
               // Channel 2 (Hard 3): Move Old Man
               if (channel === 2) {
-                  this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, true);
+                  this.midiState.oldMan.y = updateAxis(this.midiState.oldMan.y, delta, shouldInvert);
               }
           }
       }
@@ -133,8 +136,17 @@ export class InputManager {
       
       // Channel 0 (Hard 1) = Dog Boost (Bouton Noir = Note 15)
       if (channel === 0) {
-           if (type === 144 && note === 15) this.midiState.dog.boost = (velocity > 0);
-           if (type === 128 && note === 15) this.midiState.dog.boost = false;
+           if (type === 144) {
+               if (note === 15) this.midiState.dog.boost = (velocity > 0);
+               if (note === 13) this.midiState.dog.grow = (velocity > 0);
+               // Pipi: ON = 64, OFF = 0
+               if (note === 14) this.midiState.dog.pipi = (velocity >= 64);
+           }
+           if (type === 128) {
+               if (note === 15) this.midiState.dog.boost = false;
+               if (note === 13) this.midiState.dog.grow = false;
+               if (note === 14) this.midiState.dog.pipi = false;
+           }
       }
 
       // Channel 1 (Hard 2) = Tchipeur
@@ -159,9 +171,13 @@ export class InputManager {
           if (type === 144) {
               const pressed = velocity > 0;
               if (note === 14) this.midiState.oldMan.cleanTrigger = pressed;
+              if (note === 13) this.midiState.oldMan.slowZoneTrigger = pressed;
+              if (note === 15) this.midiState.oldMan.dispersionTrigger = pressed;
           }
           if (type === 128) {
               if (note === 14) this.midiState.oldMan.cleanTrigger = false;
+              if (note === 13) this.midiState.oldMan.slowZoneTrigger = false;
+              if (note === 15) this.midiState.oldMan.dispersionTrigger = false;
           }
       }
   }
@@ -214,6 +230,9 @@ export class InputManager {
     const midiCleanTrigger = this.midiState.oldMan.cleanTrigger && !this.prevMidiClean;
     this.prevMidiClean = this.midiState.oldMan.cleanTrigger;
 
+    const midiPipiTrigger = this.midiState.dog.pipi && !this.prevMidiPipi;
+    this.prevMidiPipi = this.midiState.dog.pipi;
+
     const inputState: InputState = {
       axisX: finalPlayerX,
       axisY: finalPlayerY,
@@ -233,12 +252,16 @@ export class InputManager {
           dog: {
               axisX: this.midiState.dog.x,
               axisY: this.midiState.dog.y,
-              boost: this.midiState.dog.boost
+              boost: this.midiState.dog.boost,
+              growTrigger: this.midiState.dog.grow,
+              pipiTrigger: midiPipiTrigger
           },
           oldMan: {
               axisX: this.midiState.oldMan.x,
               axisY: this.midiState.oldMan.y,
-              actionCleanTrigger: midiCleanTrigger
+              actionCleanTrigger: midiCleanTrigger,
+              slowZoneTrigger: this.midiState.oldMan.slowZoneTrigger,
+              dispersionTrigger: this.midiState.oldMan.dispersionTrigger
           }
       },
       debugMidi: this.lastDebugMessage
@@ -253,5 +276,9 @@ export class InputManager {
   public cleanup() {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
+  }
+
+  public setInvertVertical(val: boolean) {
+    this.invertVertical = val;
   }
 }

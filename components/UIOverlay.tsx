@@ -11,16 +11,18 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
     return Math.ceil(seconds).toString();
   };
 
-  const boostPercentage = Math.max(0, Math.min(100, (gameState.player.boostTimeLeft / PLAYER_MAX_BOOST_TIME) * 100));
-  const ghostPercentage = Math.max(0, Math.min(100, (gameState.player.ghostTimeLeft / PLAYER_MAX_GHOST_TIME) * 100));
+  const boostPercentage = Math.max(0, Math.min(100, (gameState.player.boostTimeLeft / gameState.config.boostDuration) * 100));
+  const ghostPercentage = Math.max(0, Math.min(100, (gameState.player.ghostTimeLeft / gameState.config.ghostDuration) * 100));
+  const slowZonePercentage = Math.max(0, Math.min(100, (gameState.slowZoneTimeLeft / gameState.config.slowZoneDuration) * 100));
+  const dogGrowPercentage = Math.max(0, Math.min(100, (gameState.dogGrowTimeLeft / gameState.config.dogGrowDuration) * 100));
   
   // Affichage du menu principal géré par MainMenu, mais on peut laisser passer le debug
   
   const wallCount = gameState.config.wallCount;
-  const squaresRowWidth = (wallCount * 24) + ((Math.max(0, wallCount - 1)) * 8);
+  const GAUGE_WIDTH = 240; // Fixed width for all gauges as requested
 
   const dogHits = gameState.player.dogHits || 0;
-  const maxDogHits = 3;
+  const maxDogHits = gameState.config.maxDogHits || 3;
 
   const isGameOver = gameState.status === 'VICTORY' || gameState.status === 'GAMEOVER';
   const isEmergency = gameState.status === 'PLAYING' && gameState.timeLeft <= 10;
@@ -62,7 +64,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
                     <div className="text-[10px] uppercase tracking-widest opacity-60">Boost</div>
                     <div 
                         className={`h-3 bg-gray-900 border ${isEmergency ? 'border-red-600' : 'border-white'}`}
-                        style={{ width: `${squaresRowWidth}px` }}
+                        style={{ width: `${GAUGE_WIDTH}px` }}
                     >
                         <div 
                             className={`h-full ${mainBgClass} ${mainShadowClass}`} 
@@ -77,11 +79,43 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState }) => {
                         <div className="text-[10px] uppercase tracking-widest opacity-60 text-cyan-400">Fantôme</div>
                         <div 
                             className={`h-3 bg-gray-900 border border-cyan-900`}
-                            style={{ width: `${squaresRowWidth}px` }}
+                            style={{ width: `${GAUGE_WIDTH}px` }}
                         >
                             <div 
                                 className={`h-full bg-cyan-400 shadow-[0_0_10px_cyan]`} 
                                 style={{ width: `${ghostPercentage}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Slow Zone Bar */}
+                {gameState.slowZoneTimeLeft > 0 && (
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="text-[10px] uppercase tracking-widest opacity-60 text-red-500">Zone Ralentie</div>
+                        <div 
+                            className={`h-3 bg-gray-900 border border-red-900`}
+                            style={{ width: `${GAUGE_WIDTH}px` }}
+                        >
+                            <div 
+                                className={`h-full bg-red-600 shadow-[0_0_10px_red]`} 
+                                style={{ width: `${slowZonePercentage}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Dog Grow Bar */}
+                {gameState.dogGrowTimeLeft > 0 && (
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="text-[10px] uppercase tracking-widest opacity-60 text-orange-500">Chien Géant</div>
+                        <div 
+                            className={`h-3 bg-gray-900 border border-orange-900`}
+                            style={{ width: `${GAUGE_WIDTH}px` }}
+                        >
+                            <div 
+                                className={`h-full bg-orange-500 shadow-[0_0_10px_orange]`} 
+                                style={{ width: `${dogGrowPercentage}%` }}
                             />
                         </div>
                     </div>

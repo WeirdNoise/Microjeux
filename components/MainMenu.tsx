@@ -223,6 +223,106 @@ const RIDDLES = [
     question: "Combien font 30 - 10 ?",
     options: ["10", "30", "40", "20"],
     correct: 3
+  },
+  {
+    question: "Qu'est-ce qui appartient à tout le monde mais que les autres utilisent plus que vous ?",
+    options: ["Votre maison", "Votre prénom", "Votre vélo", "Votre argent"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a un cou mais pas de tête ?",
+    options: ["Une girafe", "Une bouteille", "Une écharpe", "Un pull"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a une jambe mais pas de pied ?",
+    options: ["Un pantalon", "Un compas", "Un champignon", "Une table"],
+    correct: 0
+  },
+  {
+    question: "Qu'est-ce qui voyage dans le monde entier tout en restant dans son coin ?",
+    options: ["Un avion", "Un timbre", "Un nuage", "Le vent"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a des mains mais ne peut pas applaudir ?",
+    options: ["Un gant", "Une horloge", "Un robot", "Un mannequin"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a des mots mais ne parle jamais ?",
+    options: ["Un dictionnaire", "Un livre", "Un journal", "Une lettre"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui est toujours devant vous mais que vous ne pouvez pas voir ?",
+    options: ["Le futur", "Le vent", "L'air", "Le passé"],
+    correct: 0
+  },
+  {
+    question: "Qu'est-ce qui a des branches mais pas de feuilles ?",
+    options: ["Un arbre mort", "Un cerf", "Une banque", "Une rivière"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui est léger comme une plume mais que même l'homme le plus fort ne peut pas tenir longtemps ?",
+    options: ["L'eau", "Le souffle", "Une bulle", "Un secret"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a 13 cœurs mais aucun autre organe ?",
+    options: ["Un jeu de cartes", "Une équipe de foot", "Une ruche", "Une forêt"],
+    correct: 0
+  },
+  {
+    question: "Qu'est-ce qui a des clés mais ne peut pas ouvrir de serrures ?",
+    options: ["Un trousseau", "Un piano", "Un coffre", "Un gardien"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui devient de plus en plus mouillé plus il sèche ?",
+    options: ["La pluie", "Une serviette", "Le soleil", "Une éponge"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a un lit mais ne dort jamais ?",
+    options: ["Un bébé", "Une rivière", "Un chat", "Un jardin"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a un œil mais ne peut pas voir ?",
+    options: ["Un cyclone", "Une aiguille", "Une pomme de terre", "Un dé"],
+    correct: 0
+  },
+  {
+    question: "Qu'est-ce qui a des cornes mais n'est pas un animal ?",
+    options: ["Un escargot", "Un diable", "Un croissant", "Un guidon"],
+    correct: 0
+  },
+  {
+    question: "Qu'est-ce qui a des dents mais ne mange jamais ?",
+    options: ["Un peigne", "Une scie", "Un engrenage", "Un crocodile"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a un dos mais pas de ventre ?",
+    options: ["Une chaise", "Un livre", "Un chameau", "Une montagne"],
+    correct: 0
+  },
+  {
+    question: "Qu'est-ce qui a des pieds mais ne marche pas ?",
+    options: ["Un enfant", "Une table", "Un mille-pattes", "Un tabouret"],
+    correct: 1
+  },
+  {
+    question: "Qu'est-ce qui a une tête et une queue mais pas de corps ?",
+    options: ["Un serpent", "Une pièce de monnaie", "Une comète", "Un ver"],
+    correct: 1
+  },
+  {
+    question: "Je commence par E, je finis par E, mais je ne contiens qu'une seule lettre. Qui suis-je ?",
+    options: ["Une enveloppe", "Une étoile", "Une entrée", "Une école"],
+    correct: 0
   }
 ];
 
@@ -358,11 +458,49 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
 
   const checkAnswer = (index: number) => {
       if (index === currentRiddle.correct) {
+          playSyntheticSound('win');
           onStart(config, wrongAnswers);
       } else {
+          playSyntheticSound('lose');
           setIsWrongAnim(true);
           setWrongAnswers(prev => prev + 1);
           setTimeout(() => setIsWrongAnim(false), 500);
+      }
+  };
+
+  const playSyntheticSound = (type: 'win' | 'lose') => {
+      try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          const ctx = new AudioContextClass();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          const now = ctx.currentTime;
+
+          if (type === 'win') {
+              // Upward arpeggio
+              osc.type = 'square';
+              osc.frequency.setValueAtTime(440, now); // A4
+              osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+              gain.gain.setValueAtTime(0.1, now);
+              gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+              osc.start(now);
+              osc.stop(now + 0.3);
+          } else {
+              // Downward buzz
+              osc.type = 'sawtooth';
+              osc.frequency.setValueAtTime(220, now); // A3
+              osc.frequency.exponentialRampToValueAtTime(110, now + 0.2); // A2
+              gain.gain.setValueAtTime(0.1, now);
+              gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+              osc.start(now);
+              osc.stop(now + 0.4);
+          }
+      } catch (e) {
+          console.warn("Synthetic sound error:", e);
       }
   };
 
@@ -393,10 +531,10 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white">
       
       {/* --- VIRTUAL CURSOR --- */}
-      {/* Affiché uniquement pour l'écran d'énigme, masqué dans les paramètres et l'accueil */}
+      {/* Masqué pendant l'énigme selon demande utilisateur */}
       <div 
         ref={cursorRef}
-        className={`fixed top-0 left-0 w-12 h-12 pointer-events-none z-[10000] rounded-full border-4 border-red-600 bg-red-600/30 transition-transform duration-75 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.8)] ${!isRiddleOpen ? 'opacity-0' : 'opacity-100'}`}
+        className={`fixed top-0 left-0 w-12 h-12 pointer-events-none z-[10000] rounded-full border-4 border-red-600 bg-red-600/30 transition-transform duration-75 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.8)] opacity-0`}
         style={{ transform: `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px)`, marginLeft: '-24px', marginTop: '45px' }}
       >
           <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_5px_white]"></div>
@@ -508,7 +646,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                         <div className="flex items-center gap-3">
                             <button onClick={() => handleChange('dogCount', Math.max(0, config.dogCount - 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
                             <span className="text-2xl font-bold w-8">{config.dogCount}</span>
-                            <button onClick={() => handleChange('dogCount', Math.min(2, config.dogCount + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                            <button onClick={() => handleChange('dogCount', Math.min(1, config.dogCount + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
                         </div>
                     </div>
                     <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
@@ -530,9 +668,9 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                     <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
                         <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">BOOST (s)</label>
                         <div className="flex items-center gap-3">
-                            <button onClick={() => handleChange('boostDuration', Math.max(5, config.boostDuration - 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <button onClick={() => handleChange('boostDuration', Math.max(5, config.boostDuration - 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
                             <span className="text-2xl font-bold w-12">{config.boostDuration}</span>
-                            <button onClick={() => handleChange('boostDuration', Math.min(30, config.boostDuration + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                            <button onClick={() => handleChange('boostDuration', Math.min(30, config.boostDuration + 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
                         </div>
                     </div>
                     <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
@@ -544,11 +682,35 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                         </div>
                     </div>
                     <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">RALENTI (s)</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('slowZoneDuration', Math.max(5, config.slowZoneDuration - 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-12">{config.slowZoneDuration}</span>
+                            <button onClick={() => handleChange('slowZoneDuration', Math.min(60, config.slowZoneDuration + 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
                         <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">SPAM TAG</label>
                         <div className="flex items-center gap-3">
                             <button onClick={() => handleChange('tagSpamRequired', Math.max(5, config.tagSpamRequired - 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
                             <span className="text-2xl font-bold w-12">{config.tagSpamRequired}</span>
                             <button onClick={() => handleChange('tagSpamRequired', Math.min(100, config.tagSpamRequired + 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">VIES</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('maxDogHits', Math.max(3, config.maxDogHits - 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-12">{config.maxDogHits}</span>
+                            <button onClick={() => handleChange('maxDogHits', Math.min(6, config.maxDogHits + 1))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">CHIEN GÉANT (s)</label>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => handleChange('dogGrowDuration', Math.max(5, config.dogGrowDuration - 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">-</button>
+                            <span className="text-2xl font-bold w-12">{config.dogGrowDuration}</span>
+                            <button onClick={() => handleChange('dogGrowDuration', Math.min(60, config.dogGrowDuration + 5))} className="text-xl px-2 border border-gray-600 hover:bg-white hover:text-black">+</button>
                         </div>
                     </div>
                     <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
@@ -564,6 +726,15 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                                 </button>
                             ))}
                         </div>
+                    </div>
+                    <div className="flex flex-col items-center p-3 border border-gray-800 bg-white/5">
+                        <label className="mb-1 text-sm font-bold text-gray-400 uppercase tracking-tighter">INVERSER Y</label>
+                        <button 
+                            onClick={() => setConfig(prev => ({ ...prev, invertVertical: !prev.invertVertical }))}
+                            className={`px-4 py-2 text-sm border ${config.invertVertical ? 'bg-red-600 text-white border-red-600' : 'border-gray-600 text-gray-400 hover:border-white'}`}
+                        >
+                            {config.invertVertical ? 'OUI' : 'NON'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -604,6 +775,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                                 <h4 className="font-bold mb-1 text-white text-center border-b border-gray-700 pb-1">CANAL 1: CHIEN</h4>
                                 <div className="flex justify-between"><span>POTS (CC 48/49)</span><span>DÉPLACEMENT</span></div>
                                 <div className="flex justify-between"><span>BTN NOIR (NOTE 15)</span><span>BOOST</span></div>
+                                <div className="flex justify-between text-orange-500"><span>SWITCH (NOTE 13)</span><span>CHIEN GÉANT (20s)</span></div>
+                                <div className="flex justify-between text-yellow-400"><span>BTN BLANC (NOTE 14)</span><span>PIPI (BLOCAGE)</span></div>
                             </div>
                             <div className="border border-gray-700 p-2 bg-white/5">
                                 <h4 className="font-bold mb-1 text-white text-center border-b border-gray-700 pb-1">CANAL 2: TCHIPEUR</h4>

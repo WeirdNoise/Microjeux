@@ -3,31 +3,40 @@ export class SoundEffects {
   private boostAudio: HTMLAudioElement;
   private successAudio: HTMLAudioElement;
   private sprayAudio: HTMLAudioElement;
+  private pipiAudio: HTMLAudioElement;
+  private slowZoneAudio: HTMLAudioElement;
   
-  // Banques de sons aléatoires
+  private dogAudios: HTMLAudioElement[] = [];
+  private oldManAudios: HTMLAudioElement[] = [];
+
   private dogFiles = ['/sounds/Aboiement1.mp3', '/sounds/Aboiement2.mp3'];
   private oldManFiles = ['/sounds/VieuxGueule.mp3', '/sounds/VieuxRale.mp3', '/sounds/VieuxGueule2.mp3'];
 
   constructor() {
-    // Son de boost en boucle
-    this.boostAudio = new Audio('/sounds/CoursVite.mp3');
-    this.boostAudio.loop = true;
-    this.boostAudio.volume = 0.8;
+    // Pre-load constant sounds
+    this.boostAudio = this.createAudio('/sounds/CoursVite.mp3', 0.8, true);
+    this.successAudio = this.createAudio('/sounds/BaliseOk.mp3', 0.6);
+    this.sprayAudio = this.createAudio('/sounds/Tchip2.mp3', 0.6);
+    this.pipiAudio = this.createAudio('/sounds/ChienPipi.mp3', 0.7);
+    this.slowZoneAudio = this.createAudio('/sounds/VieuxRalenti.mp3', 0.7);
 
-    // Son de réussite (tag terminé)
-    this.successAudio = new Audio('/sounds/BaliseOk.mp3');
-    this.successAudio.volume = 0.6;
+    // Pre-load random banks
+    this.dogAudios = this.dogFiles.map(f => this.createAudio(f, 0.8));
+    this.oldManAudios = this.oldManFiles.map(f => this.createAudio(f, 0.8));
+  }
 
-    // Son de l'action de taguer (spray)
-    this.sprayAudio = new Audio('/sounds/Tchip2.mp3');
-    this.sprayAudio.volume = 0.6;
+  private createAudio(src: string, volume: number, loop: boolean = false): HTMLAudioElement {
+    const audio = new Audio(src);
+    audio.volume = volume;
+    audio.loop = loop;
+    audio.preload = 'auto'; // Hint to browser to load ASAP
+    return audio;
   }
 
   public async resume() {
-    // Méthode gardée pour compatibilité interface, peut servir à débloquer l'audio context si nécessaire
+    // No-op for HTMLAudioElement, but kept for interface
   }
 
-  // --- GESTION DU BOOST CONTINU ---
   public setBoostState(isBoosting: boolean) {
     if (isBoosting) {
         if (this.boostAudio.paused) {
@@ -42,37 +51,44 @@ export class SoundEffects {
   }
 
   public playSpray() {
-    // Joue le son de tag (Tchip2) uniquement s'il n'est pas déjà en cours.
-    // L'événement SPRAY étant envoyé à chaque frame (60fps), cela évite le redéclenchement intempestif.
     if (this.sprayAudio.paused) {
         this.sprayAudio.play().catch(() => {});
     }
   }
 
   public playDogHit() {
-    this.playRandom(this.dogFiles);
+    this.playFromBank(this.dogAudios);
   }
 
   public playOldManHit() {
-    this.playRandom(this.oldManFiles);
+    this.playFromBank(this.oldManAudios);
   }
 
   public playSuccess() {
-    // On clone le noeud pour permettre le chevauchement rapide des sons si plusieurs murs sont validés
-    const clone = this.successAudio.cloneNode() as HTMLAudioElement;
-    clone.volume = this.successAudio.volume;
-    clone.play().catch(() => {});
+    this.playClone(this.successAudio);
   }
 
   public playHeartbeat() {
-    // Son synthétique supprimé comme demandé
+    // Synthetic sound removed
   }
 
-  private playRandom(files: string[]) {
-    if (files.length === 0) return;
-    const file = files[Math.floor(Math.random() * files.length)];
-    const audio = new Audio(file);
-    audio.volume = 0.8;
-    audio.play().catch(e => console.warn("Impossible de jouer le son SFX", e));
+  public playSlowZone() {
+    this.playClone(this.slowZoneAudio);
+  }
+
+  public playPipi() {
+    this.playClone(this.pipiAudio);
+  }
+
+  private playClone(audio: HTMLAudioElement) {
+    const clone = audio.cloneNode() as HTMLAudioElement;
+    clone.volume = audio.volume;
+    clone.play().catch(() => {});
+  }
+
+  private playFromBank(bank: HTMLAudioElement[]) {
+    if (bank.length === 0) return;
+    const audio = bank[Math.floor(Math.random() * bank.length)];
+    this.playClone(audio);
   }
 }

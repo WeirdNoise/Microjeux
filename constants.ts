@@ -8,7 +8,7 @@ export const PLAYER_SPEED = 7;
 export const PLAYER_BOOST_SPEED = 11;
 export const PLAYER_RADIUS = 35; 
 
-export const PLAYER_MAX_BOOST_TIME = 11; // 10 + 10%
+export const PLAYER_MAX_BOOST_TIME = 20; 
 export const PLAYER_MAX_GHOST_TIME = 20; 
 
 // Vitesses ajustées pour la résolution HD

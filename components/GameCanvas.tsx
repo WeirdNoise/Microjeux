@@ -155,6 +155,29 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         ctx.restore();
     };
 
+    const drawPuddle = (puddle: any) => {
+        ctx.save();
+        ctx.translate(puddle.x, puddle.y);
+        ctx.fillStyle = "rgba(255, 255, 0, 0.4)"; // Translucent yellow
+        ctx.beginPath();
+        // Draw a rough oval for the puddle
+        const jit = () => (Math.random() - 0.5) * 5;
+        for(let i=0; i<3; i++) {
+            ctx.ellipse(jit(), jit(), puddle.width/2 + jit(), puddle.height/2 + jit(), Math.random() * 0.1, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        
+        // Add some "shimmer" lines
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-puddle.width/4, -puddle.height/4);
+        ctx.lineTo(puddle.width/4, -puddle.height/4);
+        ctx.stroke();
+        
+        ctx.restore();
+    };
+
     const drawOldManSketch = (x: number, y: number, w: number, h: number) => {
         ctx.save();
         ctx.translate(x, y);
@@ -199,11 +222,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState }) => {
         }
     });
 
+    // Puddles
+    gameState.puddles.forEach(puddle => {
+        drawPuddle(puddle);
+    });
+
     // Enemies
     gameState.enemies.forEach(enemy => {
         if (enemy.type === EntityType.DOG) {
             drawHatchedTriangle(enemy.x, enemy.y, enemy.width, enemy.height, enemy.angle);
         } else {
+            // Draw Slow Zone Halo if active
+            if (gameState.isSlowZoneActive) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(enemy.x, enemy.y, 150, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(255, 0, 0, 0.15)";
+                ctx.fill();
+                ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+            }
             drawOldManSketch(enemy.x, enemy.y, enemy.width, enemy.height);
         }
     });

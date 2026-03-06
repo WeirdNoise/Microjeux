@@ -5,7 +5,8 @@ import {
   Wall, 
   Enemy,
   GameConfig,
-  Player
+  Player,
+  Puddle
 } from '../types';
 import { 
   GAME_WIDTH, 
@@ -44,8 +45,10 @@ const moveEntity = (
   width: number, 
   height: number, 
   walls: Wall[],
+  puddles: Puddle[] = [],
   isCircle: boolean = false,
-  isGhost: boolean = false
+  isGhost: boolean = false,
+  ignorePuddles: boolean = false
 ): { x: number, y: number, hitWall: boolean } => {
   
   let newX = x;
@@ -80,6 +83,19 @@ const moveEntity = (
               break;
           }
       }
+      
+      if (!collisionX && !ignorePuddles) {
+          for (const puddle of puddles) {
+              const isHit = isCircle
+                  ? checkCircleRect(newX, y, radius, puddle.x - puddle.width/2, puddle.y - puddle.height/2, puddle.width, puddle.height)
+                  : checkAABB(newX - width/2, y - height/2, width, height, puddle.x - puddle.width/2, puddle.y - puddle.height/2, puddle.width, puddle.height);
+              if (isHit) {
+                  collisionX = true;
+                  newX = x;
+                  break;
+              }
+          }
+      }
   }
   if (collisionX) hit = true;
 
@@ -107,6 +123,19 @@ const moveEntity = (
               collisionY = true;
               newY = y; 
               break;
+          }
+      }
+      
+      if (!collisionY && !ignorePuddles) {
+          for (const puddle of puddles) {
+              const isHit = isCircle
+                  ? checkCircleRect(newX, nextY, radius, puddle.x - puddle.width/2, puddle.y - puddle.height/2, puddle.width, puddle.height)
+                  : checkAABB(newX - width/2, nextY - height/2, width, height, puddle.x - puddle.width/2, puddle.y - puddle.height/2, puddle.width, puddle.height);
+              if (isHit) {
+                  collisionY = true;
+                  newY = y;
+                  break;
+              }
           }
       }
   }
@@ -201,7 +230,9 @@ export const createInitialState = (config: GameConfig): GameState => {
                    randomSpeedFactor: 1,
                    randomSpeedTimer: 0,
                    isBoosting: false,
-                   lastMoveDir: { x: 1, y: 0 } // Default valid direction
+                   lastMoveDir: { x: 1, y: 0 }, // Default valid direction
+                   boostCooldownTimer: 0,
+                   boostActiveTimer: 0
                });
                safe = true;
           }
@@ -236,8 +267,12 @@ export const createInitialState = (config: GameConfig): GameState => {
     particles: [],
     screenShake: 0,
     audioEvents: [],
+    slowZoneTimeLeft: config.slowZoneDuration,
+    isSlowZoneActive: false,
     lastMidiDebug: "Waiting...",
-    wrongAnswers: 0
+    wrongAnswers: 0,
+    dogGrowTimeLeft: config.dogGrowDuration,
+    puddles: []
   };
 };
 
@@ -250,6 +285,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
     player: { ...state.player }, 
     walls: state.walls.map(w => ({ ...w })),
     enemies: state.enemies.map(e => ({ ...e })),
+    puddles: state.puddles.map(p => ({ ...p })),
     audioEvents: [] as string[],
     lastMidiDebug: input.debugMidi || state.lastMidiDebug
   };
@@ -276,6 +312,63 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
   if (state.status !== 'PLAYING') return newState;
   
+  // 0. SLOW ZONE LOGIC
+  if (input.enemies.oldMan.slowZoneTrigger && state.slowZoneTimeLeft > 0) {
+      newState.isSlowZoneActive = true;
+      if (!state.isSlowZoneActive) {
+          newState.audioEvents.push('SLOW_ZONE_ENTER');
+      }
+  } else {
+      newState.isSlowZoneActive = false;
+  }
+
+  if (newState.isSlowZoneActive) {
+      newState.slowZoneTimeLeft = Math.max(0, newState.slowZoneTimeLeft - 1/60);
+      if (newState.slowZoneTimeLeft <= 0) {
+          newState.isSlowZoneActive = false;
+      }
+  }
+
+  // 0.1 DOG GROW LOGIC
+  let isDogGrowing = input.enemies.dog.growTrigger && state.dogGrowTimeLeft > 0;
+  if (isDogGrowing) {
+      newState.dogGrowTimeLeft = Math.max(0, newState.dogGrowTimeLeft - 1/60);
+  }
+
+  // 0.2 PUDDLE LOGIC
+  newState.puddles = state.puddles.map(p => ({ ...p, timeLeft: p.timeLeft - 1/60 })).filter(p => p.timeLeft > 0);
+
+  // 0.3 DOG PIPI LOGIC
+  if (input.enemies.dog.pipiTrigger && newState.puddles.length === 0) {
+      const dog = newState.enemies.find(e => e.type === EntityType.DOG);
+      if (dog) {
+          let closestWall: Wall | null = null;
+          let minDist = 80; 
+          for (const wall of newState.walls) {
+              const dx = Math.max(wall.x - dog.x, 0, dog.x - (wall.x + wall.width));
+              const dy = Math.max(wall.y - dog.y, 0, dog.y - (wall.y + wall.height));
+              const dist = Math.sqrt(dx*dx + dy*dy);
+              if (dist < minDist) {
+                  minDist = dist;
+                  closestWall = wall;
+              }
+          }
+
+          if (closestWall) {
+              newState.audioEvents.push('DOG_PIPI');
+              newState.puddles.push({
+                  id: `puddle_${Date.now()}`,
+                  x: dog.x,
+                  y: dog.y,
+                  width: 100,
+                  height: 100,
+                  timeLeft: 10,
+                  wallId: closestWall.id
+              });
+          }
+      }
+  }
+
   // 1. PLAYER LOGIC
   let isBoosting = input.actionSecondary && newState.player.boostTimeLeft > 0;
   if (isBoosting) newState.player.boostTimeLeft = Math.max(0, newState.player.boostTimeLeft - 1/60);
@@ -285,6 +378,24 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   let isGhosting = input.actionGhost && newState.player.ghostTimeLeft > 0;
   if (isGhosting) newState.player.ghostTimeLeft = Math.max(0, newState.player.ghostTimeLeft - 1/60);
   newState.player.isGhosting = isGhosting;
+
+  // Apply Slowdown if in zone
+  let slowdownFactor = 1.0;
+  if (newState.isSlowZoneActive) {
+      const SLOW_RADIUS = 150;
+      const isInSlowZone = newState.enemies.some(e => {
+          if (e.type === EntityType.OLD_MAN) {
+              const dx = newState.player.x - e.x;
+              const dy = newState.player.y - e.y;
+              return Math.sqrt(dx*dx + dy*dy) < SLOW_RADIUS;
+          }
+          return false;
+      });
+
+      if (isInSlowZone) {
+          slowdownFactor = 0.4;
+      }
+  }
 
   // GHOST POP-OUT LOGIC
   // If ghost mode ends while inside a wall, push player out to the nearest edge
@@ -335,7 +446,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       dirY = newState.player.lastMoveDir.y;
   }
 
-  const speed = isBoosting ? PLAYER_BOOST_SPEED : PLAYER_SPEED;
+  const speed = (isBoosting ? PLAYER_BOOST_SPEED : PLAYER_SPEED) * slowdownFactor;
   const vx = dirX * speed;
   const vy = dirY * speed;
   newState.player.velocity = { x: vx, y: vy };
@@ -345,8 +456,10 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       vx, vy, 
       newState.player.radius * 2, newState.player.radius * 2, 
       newState.walls, 
+      newState.puddles,
       true,
-      isGhosting
+      isGhosting,
+      false
   );
   newState.player.x = pMove.x;
   newState.player.y = pMove.y;
@@ -360,6 +473,10 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
     newState.walls.forEach(wall => {
       if (!wall.isTagged) {
+        // Check if wall has a puddle
+        const hasPuddle = newState.puddles.some(p => p.wallId === wall.id);
+        if (hasPuddle) return;
+
         const isHorizontal = wall.width > wall.height;
         let canTag = false;
         let dist = 9999;
@@ -424,6 +541,48 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       // Pour le chien, on utilise désormais le Channel 1 (inputs standards) pour le boost
       if (enemy.type === EntityType.DOG) {
           const dogInput = input.enemies.dog;
+
+          // Handle Growing
+          if (isDogGrowing) {
+              enemy.isGrowing = true;
+              enemy.width = 120; // Double size
+              enemy.height = 120;
+
+              // Push out of walls if growing
+              for (let i = 0; i < 3; i++) { // Resolve overlaps
+                  let resolved = true;
+                  for (const wall of newState.walls) {
+                      if (checkAABB(enemy.x - enemy.width/2, enemy.y - enemy.height/2, enemy.width, enemy.height, wall.x, wall.y, wall.width, wall.height)) {
+                          const overlapLeft = (enemy.x + enemy.width/2) - wall.x;
+                          const overlapRight = (wall.x + wall.width) - (enemy.x - enemy.width/2);
+                          const overlapTop = (enemy.y + enemy.height/2) - wall.y;
+                          const overlapBottom = (wall.y + wall.height) - (enemy.y - enemy.height/2);
+                          
+                          const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+                          
+                          if (minOverlap === overlapLeft) enemy.x -= (overlapLeft + 1);
+                          else if (minOverlap === overlapRight) enemy.x += (overlapRight + 1);
+                          else if (minOverlap === overlapTop) enemy.y -= (overlapTop + 1);
+                          else if (minOverlap === overlapBottom) enemy.y += (overlapBottom + 1);
+                          resolved = false;
+                      }
+                  }
+                  if (resolved) break;
+              }
+
+              // Boundary check
+              const margin = 20;
+              if (enemy.x - enemy.width/2 < margin) enemy.x = enemy.width/2 + margin;
+              if (enemy.x + enemy.width/2 > GAME_WIDTH - margin) enemy.x = GAME_WIDTH - margin - enemy.width/2;
+              if (enemy.y - enemy.height/2 < margin) enemy.y = enemy.height/2 + margin;
+              if (enemy.y + enemy.height/2 > GAME_HEIGHT - margin) enemy.y = GAME_HEIGHT - margin - enemy.height/2;
+
+          } else {
+              enemy.isGrowing = false;
+              enemy.width = 60; // Default size
+              enemy.height = 60;
+          }
+
           const hasInput = Math.abs(dogInput.axisX) > 0.05 || Math.abs(dogInput.axisY) > 0.05;
           
           if (hasInput || dogInput.boost) {
@@ -437,9 +596,24 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
                }
           }
           
-          enemy.isBoosting = dogInput.boost;
+          // --- LOGIQUE BOOST CHIEN (3s actif, 10s cooldown) ---
+          if (enemy.boostCooldownTimer && enemy.boostCooldownTimer > 0) {
+              enemy.boostCooldownTimer--;
+          }
+
+          if (enemy.boostActiveTimer && enemy.boostActiveTimer > 0) {
+              enemy.boostActiveTimer--;
+              enemy.isBoosting = true;
+          } else {
+              enemy.isBoosting = false;
+              if (dogInput.boost && (!enemy.boostCooldownTimer || enemy.boostCooldownTimer <= 0)) {
+                  enemy.boostActiveTimer = 180; // 3 seconds at 60fps
+                  enemy.boostCooldownTimer = 600; // 10 seconds at 60fps
+                  enemy.isBoosting = true;
+              }
+          }
       }
-      else if (inputSource && (Math.abs(inputSource.axisX) > 0.05 || Math.abs(inputSource.axisY) > 0.05)) {
+      else if (inputSource && (Math.abs(inputSource.axisX) > 0.05 || Math.abs(inputSource.axisY) > 0.05 || (enemy.type === EntityType.OLD_MAN && input.enemies.oldMan.dispersionTrigger))) {
           enemy.isManual = true;
       }
       
@@ -474,27 +648,85 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
               evx = inputSource.axisX * mSpeed;
               evy = inputSource.axisY * mSpeed;
+
+              // --- LOGIQUE DISPERSION VIEUX ---
+              if (enemy.type === EntityType.OLD_MAN && input.enemies.oldMan.dispersionTrigger) {
+                  const oldMen = newState.enemies.filter(e => e.type === EntityType.OLD_MAN);
+                  
+                  // If no target, pick a random target
+                  if (!enemy.dispersionTarget) {
+                      enemy.dispersionTarget = {
+                          x: 100 + Math.random() * (GAME_WIDTH - 200),
+                          y: 100 + Math.random() * (GAME_HEIGHT - 200)
+                      };
+                  }
+                  
+                  const target = enemy.dispersionTarget;
+                  const tdx = target.x - enemy.x;
+                  const tdy = target.y - enemy.y;
+                  const tdist = Math.sqrt(tdx*tdx + tdy*tdy);
+                  
+                  if (tdist > 30) {
+                      evx = (tdx / tdist) * mSpeed;
+                      evy = (tdy / tdist) * mSpeed;
+                  } else {
+                      // Target reached, pick a new one to keep moving randomly if button held
+                      enemy.dispersionTarget = {
+                          x: 100 + Math.random() * (GAME_WIDTH - 200),
+                          y: 100 + Math.random() * (GAME_HEIGHT - 200)
+                      };
+                  }
+
+                  // Strong separation during dispersion
+                  oldMen.forEach(other => {
+                      if (other.id !== enemy.id) {
+                          const odx = enemy.x - other.x;
+                          const ody = enemy.y - other.y;
+                          const odist = Math.sqrt(odx*odx + ody*ody);
+                          if (odist < 300 && odist > 0) {
+                              evx += (odx / odist) * 1.5;
+                              evy += (ody / odist) * 1.5;
+                          }
+                      }
+                  });
+
+                  // Normalize to mSpeed to ensure they don't move faster than normal
+                  const finalDist = Math.sqrt(evx*evx + evy*evy);
+                  if (finalDist > 0) {
+                      evx = (evx / finalDist) * mSpeed;
+                      evy = (evy / finalDist) * mSpeed;
+                  }
+              } else if (enemy.type === EntityType.OLD_MAN) {
+                  // Reset target when not dispersing
+                  enemy.dispersionTarget = undefined;
+              }
+
               enemy.velocity = {x: evx, y: evy};
           }
           
           // --- LOGIQUE NETTOYAGE VIEUX ---
           if (enemy.type === EntityType.OLD_MAN && input.enemies.oldMan.actionCleanTrigger) {
-              let targetWall: Wall | null = null;
-              let minDist = 100;
-              for (const wall of newState.walls) {
-                  if (!wall.isTagged && wall.tagProgress > 0) {
-                      const dx = enemy.x - (wall.x + wall.width/2);
-                      const dy = enemy.y - (wall.y + wall.height/2);
-                      const dist = Math.sqrt(dx*dx + dy*dy);
-                      if (dist < minDist) {
-                          minDist = dist;
-                          targetWall = wall;
+              // Si il ne reste plus qu'un mur à taguer, le vieux ne plus nettoyer
+              const wallsRemaining = newState.walls.filter(w => !w.isTagged).length;
+              
+              if (wallsRemaining > 1) {
+                  let targetWall: Wall | null = null;
+                  let minDist = 100;
+                  for (const wall of newState.walls) {
+                      if (!wall.isTagged && wall.tagProgress > 0) {
+                          const dx = enemy.x - (wall.x + wall.width/2);
+                          const dy = enemy.y - (wall.y + wall.height/2);
+                          const dist = Math.sqrt(dx*dx + dy*dy);
+                          if (dist < minDist) {
+                              minDist = dist;
+                              targetWall = wall;
+                          }
                       }
                   }
-              }
-              if (targetWall) {
-                  targetWall.tagProgress = Math.max(0, targetWall.tagProgress - 10);
-                  newState.audioEvents.push('SPRAY'); 
+                  if (targetWall) {
+                      targetWall.tagProgress = Math.max(0, targetWall.tagProgress - 10);
+                      newState.audioEvents.push('SPRAY'); 
+                  }
               }
           }
           
@@ -518,6 +750,34 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
                const attraction = 0.15;
                evx += dirX * attraction;
                evy += dirY * attraction;
+
+               // --- RELATIVE MOVEMENT (FLOCKING/OFFSET) ---
+               // If multiple old men, they try to maintain some separation and different angles
+               const oldMen = newState.enemies.filter(e => e.type === EntityType.OLD_MAN);
+               if (oldMen.length > 1) {
+                   const myIndex = oldMen.findIndex(e => e.id === enemy.id);
+                   
+                   // Separation force
+                   oldMen.forEach(other => {
+                       if (other.id !== enemy.id) {
+                           const odx = enemy.x - other.x;
+                           const ody = enemy.y - other.y;
+                           const odist = Math.sqrt(odx*odx + ody*ody);
+                           if (odist < 100 && odist > 0) {
+                               evx += (odx / odist) * 0.5;
+                               evy += (ody / odist) * 0.5;
+                           }
+                       }
+                   });
+
+                   // Offset force: try to be at a different angle relative to player
+                   const targetAngle = (Math.PI * 2 / oldMen.length) * myIndex;
+                   const idealX = newState.player.x + Math.cos(targetAngle) * 100;
+                   const idealY = newState.player.y + Math.sin(targetAngle) * 100;
+                   
+                   evx += (idealX - enemy.x) * 0.02;
+                   evy += (idealY - enemy.y) * 0.02;
+               }
 
                if (Math.random() < 0.02) {
                    const angle = Math.random() * Math.PI * 2;
@@ -620,7 +880,16 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           }
       });
 
-      const eMove = moveEntity(enemy.x, enemy.y, evx, evy, enemy.width, enemy.height, newState.walls, false);
+      const eMove = moveEntity(
+          enemy.x, enemy.y, 
+          evx, evy, 
+          enemy.width, enemy.height, 
+          newState.walls, 
+          newState.puddles,
+          false, 
+          false, 
+          enemy.type === EntityType.DOG
+      );
       enemy.x = eMove.x;
       enemy.y = eMove.y;
 
@@ -631,7 +900,8 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
       const pDx = newState.player.x - enemy.x;
       const pDy = newState.player.y - enemy.y;
-      if (Math.sqrt(pDx*pDx + pDy*pDy) < (PLAYER_RADIUS + enemy.width/2)) {
+      // Tchipeur ne peut plus se faire toucher si il est en mode fantôme
+      if (!newState.player.isGhosting && Math.sqrt(pDx*pDx + pDy*pDy) < (PLAYER_RADIUS + enemy.width/2)) {
           if (newState.player.stunTimer <= 0) {
               newState.player.stunTimer = 120;
               newState.screenShake = 5;
@@ -639,7 +909,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
                   newState.player.dogHits = (newState.player.dogHits || 0) + 1;
                   newState.player.lastHitTime = Date.now(); // Record hit time
                   newState.audioEvents.push('HIT_DOG'); 
-                  if (newState.player.dogHits >= 3) newState.status = 'GAMEOVER';
+                  if (newState.player.dogHits >= newState.config.maxDogHits) newState.status = 'GAMEOVER';
               } else {
                   newState.audioEvents.push('HIT_OLDMAN'); 
               }

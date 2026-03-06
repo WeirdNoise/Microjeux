@@ -31,8 +31,8 @@ export interface InputState {
   // Enemy Remote Controls (MIDI/OSC)
   enemies: {
       barrier: EntityInput;
-      dog: EntityInput;
-      oldMan: EntityInput & { actionCleanTrigger?: boolean };
+      dog: EntityInput & { growTrigger?: boolean; pipiTrigger?: boolean };
+      oldMan: EntityInput & { actionCleanTrigger?: boolean; slowZoneTrigger?: boolean; dispersionTrigger?: boolean };
   };
   
   // Debug
@@ -73,6 +73,17 @@ export interface Enemy {
   // Logic spécifique au Vieux (Anti-Stuck)
   lastPosition?: Vector2;
   stuckCheckTimer?: number;
+
+  // Logic spécifique au Chien (Grossissement)
+  isGrowing?: boolean;
+  growScale?: number; // 1.0 to 2.0 for example
+
+  // Logic spécifique au Boost Chien (Nouveau)
+  boostCooldownTimer?: number;
+  boostActiveTimer?: number;
+  
+  // Dispersion target
+  dispersionTarget?: Vector2;
 }
 
 export interface Player {
@@ -100,7 +111,21 @@ export interface GameConfig {
   boostDuration: number; // Duration in seconds
   ghostDuration: number; // Duration in seconds
   tagSpamRequired: number; // Number of spams to tag a wall
+  maxDogHits: number; // Number of hits to lose
+  slowZoneDuration: number; // Duration in seconds
   difficulty: 'EASY' | 'NORMAL' | 'HARD';
+  invertVertical: boolean;
+  dogGrowDuration: number;
+}
+
+export interface Puddle {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  timeLeft: number; // in seconds
+  wallId: string; // The wall it's attached to
 }
 
 export interface GameState {
@@ -113,6 +138,10 @@ export interface GameState {
   particles: Particle[];
   screenShake: number;
   audioEvents: string[]; // Queue of one-shot audio events to play this frame
+  slowZoneTimeLeft: number; // In seconds
+  isSlowZoneActive: boolean;
+  dogGrowTimeLeft: number; // In seconds
+  puddles: Puddle[];
   lastMidiDebug?: string; // Last raw MIDI message for debug
   wrongAnswers: number; // Count of wrong answers in enigma
 }

@@ -15,10 +15,14 @@ const DEFAULT_CONFIG: GameConfig = {
     dogCount: 1, 
     oldManCount: 1,
     gameDuration: 180,
-    boostDuration: 11,
+    boostDuration: 20,
     ghostDuration: 20,
     tagSpamRequired: 25,
-    difficulty: 'NORMAL'
+    maxDogHits: 3,
+    slowZoneDuration: 20,
+    difficulty: 'NORMAL',
+    invertVertical: false,
+    dogGrowDuration: 20
 };
 
 const App: React.FC = () => {
@@ -120,6 +124,8 @@ const App: React.FC = () => {
               if (event === 'HIT_OLDMAN') sfx.current.playOldManHit();
               if (event === 'WALL_DONE') sfx.current.playSuccess();
               if (event === 'COUNTDOWN') sfx.current.playHeartbeat();
+              if (event === 'SLOW_ZONE_ENTER') sfx.current.playSlowZone();
+              if (event === 'DOG_PIPI') sfx.current.playPipi();
           });
       }
   }, [gameState.audioEvents, gameState.player.isBoosting, gameState.status]);
@@ -137,6 +143,9 @@ const App: React.FC = () => {
 
   const loop = useCallback(() => {
     if (!inputManager.current) return;
+
+    // Update InputManager settings from current config
+    inputManager.current.setInvertVertical(currentConfig.current.invertVertical);
 
     const input = inputManager.current.getInput();
 

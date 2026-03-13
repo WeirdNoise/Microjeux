@@ -154,6 +154,7 @@ export interface GameState {
   audioEvents: string[]; // Queue of one-shot audio events to play this frame
   slowZoneTimeLeft: number; // In seconds
   isSlowZoneActive: boolean;
+  globalSlowZoneCooldown: number; // New: global cooldown for AI slow zone (in frames)
   dogGrowTimeLeft: number; // In seconds
   puddles: Puddle[];
   lastPeeWallId: string | null;

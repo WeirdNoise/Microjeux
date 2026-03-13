@@ -332,6 +332,7 @@ export const createInitialState = (config: GameConfig): GameState => {
     audioEvents: [],
     slowZoneTimeLeft: config.slowZoneDuration,
     isSlowZoneActive: false,
+    globalSlowZoneCooldown: 0,
     lastMidiDebug: "Waiting...",
     wrongAnswers: 0,
     dogGrowTimeLeft: config.dogGrowDuration,
@@ -434,15 +435,18 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               // Slow Zone logic
               if (enemy.aiSlowZoneCooldown && enemy.aiSlowZoneCooldown > 0) enemy.aiSlowZoneCooldown--;
               const distToPlayer = Math.sqrt((enemy.x - state.player.x)**2 + (enemy.y - state.player.y)**2);
-              if (distToPlayer < SLOW_ZONE_RADIUS && (!enemy.aiSlowZoneCooldown || enemy.aiSlowZoneCooldown <= 0) && state.slowZoneTimeLeft > 0) {
+              
+              // AI can only trigger if global cooldown is off
+              if (distToPlayer < SLOW_ZONE_RADIUS && (!enemy.aiSlowZoneCooldown || enemy.aiSlowZoneCooldown <= 0) && state.slowZoneTimeLeft > 0 && state.globalSlowZoneCooldown <= 0) {
                   if (Math.random() < AI_SLOW_ZONE_PROBABILITY) {
                       simulatedInput.enemies.oldMan.slowZoneTrigger = true;
                   }
               }
-              // If already active, keep it
-              if (state.isSlowZoneActive && Math.random() > 0.02) {
+              // If already active, keep it (only the first old man handles the "keep active" logic to avoid N-enemy probability scaling)
+              const isFirstOldMan = newState.enemies.filter(e => e.type === EntityType.OLD_MAN)[0]?.id === enemy.id;
+              if (state.isSlowZoneActive && isFirstOldMan && Math.random() > 0.05) {
                   simulatedInput.enemies.oldMan.slowZoneTrigger = true;
-              } else if (state.isSlowZoneActive) {
+              } else if (state.isSlowZoneActive && isFirstOldMan) {
                   enemy.aiSlowZoneCooldown = AI_SLOW_ZONE_COOLDOWN;
               }
 
@@ -482,12 +486,18 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   });
 
   // 0. SLOW ZONE LOGIC
+  if (newState.globalSlowZoneCooldown > 0) newState.globalSlowZoneCooldown--;
+
   if (simulatedInput.enemies.oldMan.slowZoneTrigger && state.slowZoneTimeLeft > 0) {
       newState.isSlowZoneActive = true;
       if (!state.isSlowZoneActive) {
           newState.audioEvents.push('SLOW_ZONE_ENTER');
       }
   } else {
+      if (state.isSlowZoneActive) {
+          // Set global cooldown when it ends to prevent AI from chaining it
+          newState.globalSlowZoneCooldown = 480; // 8 seconds
+      }
       newState.isSlowZoneActive = false;
   }
 

@@ -49,6 +49,57 @@ const checkAABB = (x1: number, y1: number, w1: number, h1: number, x2: number, y
   return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
 };
 
+/**
+ * Resolves overlaps between an entity and walls/boundaries.
+ * Pushes the entity out to the nearest valid position.
+ */
+const resolveOverlap = (entity: any, walls: Wall[], isCircle: boolean = false) => {
+    const radius = isCircle ? (entity.radius || PLAYER_RADIUS) : (entity.width / 2);
+    const margin = 20;
+    
+    // 1. Boundary check (Keep inside game area with margin)
+    if (isCircle) {
+        entity.x = Math.max(radius + margin, Math.min(GAME_WIDTH - radius - margin, entity.x));
+        entity.y = Math.max(radius + margin, Math.min(GAME_HEIGHT - radius - margin, entity.y));
+    } else {
+        entity.x = Math.max(entity.width/2 + margin, Math.min(GAME_WIDTH - entity.width/2 - margin, entity.x));
+        entity.y = Math.max(entity.height/2 + margin, Math.min(GAME_HEIGHT - entity.height/2 - margin, entity.y));
+    }
+
+    // 2. Wall overlap resolution
+    // We do multiple passes to handle cases where pushing out of one wall might push into another
+    for (let pass = 0; pass < 2; pass++) {
+        for (const wall of walls) {
+            const isHit = isCircle
+                ? checkCircleRect(entity.x, entity.y, radius, wall.x, wall.y, wall.width, wall.height)
+                : checkAABB(entity.x - entity.width/2, entity.y - entity.height/2, entity.width, entity.height, wall.x, wall.y, wall.width, wall.height);
+            
+            if (isHit) {
+                // Find nearest edge to push out to
+                const dLeft = Math.abs(entity.x - wall.x);
+                const dRight = Math.abs(entity.x - (wall.x + wall.width));
+                const dTop = Math.abs(entity.y - wall.y);
+                const dBottom = Math.abs(entity.y - (wall.y + wall.height));
+                const min = Math.min(dLeft, dRight, dTop, dBottom);
+                
+                if (min === dLeft) entity.x = wall.x - radius - 1;
+                else if (min === dRight) entity.x = wall.x + wall.width + radius + 1;
+                else if (min === dTop) entity.y = wall.y - radius - 1;
+                else if (min === dBottom) entity.y = wall.y + wall.height + radius + 1;
+
+                // Re-apply boundary checks after wall push
+                if (isCircle) {
+                    entity.x = Math.max(radius + margin, Math.min(GAME_WIDTH - radius - margin, entity.x));
+                    entity.y = Math.max(radius + margin, Math.min(GAME_HEIGHT - radius - margin, entity.y));
+                } else {
+                    entity.x = Math.max(entity.width/2 + margin, Math.min(GAME_WIDTH - entity.width/2 - margin, entity.x));
+                    entity.y = Math.max(entity.height/2 + margin, Math.min(GAME_HEIGHT - entity.height/2 - margin, entity.y));
+                }
+            }
+        }
+    }
+};
+
 const moveEntity = (
   x: number, 
   y: number, 
@@ -560,9 +611,6 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   for (const entity of entitiesToPush) {
       for (const puddle of newState.puddles) {
           const radius = 'radius' in entity ? entity.radius : (entity.width / 2);
-          // Puddle coordinates are center-based in some places, but checkAABB uses top-left.
-          // In GameCanvas: ctx.translate(puddle.x, puddle.y); ctx.ellipse(0, 0, puddle.width/2, puddle.height/2...)
-          // So puddle.x, puddle.y is the center.
           const px = puddle.x - puddle.width / 2;
           const py = puddle.y - puddle.height / 2;
 
@@ -578,34 +626,13 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               const dBottom = Math.abs(entity.y - (py + puddle.height));
               const min = Math.min(dLeft, dRight, dTop, dBottom);
               
-              let targetX = entity.x;
-              let targetY = entity.y;
+              if (min === dLeft) entity.x = px - radius - 2;
+              else if (min === dRight) entity.x = px + puddle.width + radius + 2;
+              else if (min === dTop) entity.y = py - radius - 2;
+              else if (min === dBottom) entity.y = py + puddle.height + radius + 2;
 
-              if (min === dLeft) targetX = px - radius;
-              else if (min === dRight) targetX = px + puddle.width + radius;
-              else if (min === dTop) targetY = py - radius;
-              else if (min === dBottom) targetY = py + puddle.height + radius;
-
-              // Check if target position is inside a wall
-              const isInsideWall = newState.walls.some(wall => 
-                  checkAABB(targetX - radius, targetY - radius, radius * 2, radius * 2, wall.x, wall.y, wall.width, wall.height)
-              );
-
-              if (!isInsideWall) {
-                  entity.x = targetX;
-                  entity.y = targetY;
-              } else {
-                  // If nearest edge is a wall, try other edges or just move away from puddle center
-                  const dx = entity.x - puddle.x;
-                  const dy = entity.y - puddle.y;
-                  const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-                  entity.x += (dx / dist) * 10;
-                  entity.y += (dy / dist) * 10;
-              }
-
-              // Boundary checks
-              entity.x = Math.max(radius, Math.min(GAME_WIDTH - radius, entity.x));
-              entity.y = Math.max(radius, Math.min(GAME_HEIGHT - radius, entity.y));
+              // CRITICAL: After pushing out of puddle, resolve any wall collisions immediately
+              resolveOverlap(entity, newState.walls, 'radius' in entity);
           }
       }
   }
@@ -979,30 +1006,6 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
                    evy = (evy / len) * baseOldManSpeed;
                } else { evx = baseOldManSpeed; }
                
-               // --- OLD MAN STUCK DETECTION ---
-               if (!enemy.lastPosition) enemy.lastPosition = { x: enemy.x, y: enemy.y };
-               if (!enemy.stuckCheckTimer) enemy.stuckCheckTimer = 0;
-               
-               enemy.stuckCheckTimer++;
-               if (enemy.stuckCheckTimer > 300) { // 5 seconds at 60fps
-                   const dx = enemy.x - enemy.lastPosition.x;
-                   const dy = enemy.y - enemy.lastPosition.y;
-                   const distMoved = Math.sqrt(dx*dx + dy*dy);
-                   
-                   if (distMoved < 100) { // Hasn't moved 100px in 5 seconds -> STUCK
-                       // Force a random direction away from current velocity or towards center
-                       const escapeAngle = Math.random() * Math.PI * 2;
-                       evx = Math.cos(escapeAngle) * baseOldManSpeed * 2; // Burst speed
-                       evy = Math.sin(escapeAngle) * baseOldManSpeed * 2;
-                       // Reset timer but give a grace period (negative value) to allow escape
-                       enemy.stuckCheckTimer = -120; // 2 seconds of freedom
-                   } else {
-                       // Reset tracking
-                       enemy.lastPosition = { x: enemy.x, y: enemy.y };
-                       enemy.stuckCheckTimer = 0;
-                   }
-               }
-               
                enemy.velocity = {x: evx, y: evy};
           }
           else if (enemy.type === EntityType.DOG) {
@@ -1134,6 +1137,31 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           }
       });
 
+      // --- OLD MAN STUCK DETECTION (SENSITIVE) ---
+      if (enemy.type === EntityType.OLD_MAN && !enemy.isManual) {
+          if (enemy.stuckFrames === undefined) enemy.stuckFrames = 0;
+          if (enemy.lastX === undefined) { enemy.lastX = enemy.x; enemy.lastY = enemy.y; }
+          
+          const dMovedSq = (enemy.x - (enemy.lastX || 0))**2 + (enemy.y - (enemy.lastY || 0))**2;
+          if (dMovedSq < 0.01) {
+              enemy.stuckFrames++;
+          } else {
+              enemy.stuckFrames = 0;
+              enemy.lastX = enemy.x;
+              enemy.lastY = enemy.y;
+          }
+
+          if (enemy.stuckFrames > 10) {
+              // Force a random escape direction
+              const angle = Math.random() * Math.PI * 2;
+              enemy.velocity = {
+                  x: Math.cos(angle) * baseOldManSpeed * 2,
+                  y: Math.sin(angle) * baseOldManSpeed * 2
+              };
+              enemy.stuckFrames = -30; // Grace period
+          }
+      }
+
       const eMove = moveEntity(
           enemy.x, enemy.y, 
           evx, evy, 
@@ -1147,10 +1175,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       enemy.x = eMove.x;
       enemy.y = eMove.y;
 
-      if (eMove.hitWall && enemy.type === EntityType.OLD_MAN && !enemy.isManual) {
-          enemy.velocity.x *= -1;
-          enemy.velocity.y *= -1;
-      }
+      // Removed the simple bounce logic as it can cause jittering and sticking
 
       const pDx = newState.player.x - enemy.x;
       const pDy = newState.player.y - enemy.y;
@@ -1178,6 +1203,12 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       if ((enemy.state === 'barking' || enemy.state === 'yelling') && enemy.cooldown-- <= 0) {
           enemy.state = 'chasing';
       }
+  });
+
+  // Final Safety Check: Ensure no entity is stuck in a wall or boundary at the end of the frame
+  resolveOverlap(newState.player, newState.walls, true);
+  newState.enemies.forEach(enemy => {
+      resolveOverlap(enemy, newState.walls, enemy.type === EntityType.DOG);
   });
 
   if (newState.screenShake > 0) newState.screenShake *= 0.9;

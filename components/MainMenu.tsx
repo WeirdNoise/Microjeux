@@ -583,6 +583,9 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
           >
               COLORIE TA VILLE
           </button>
+          <div className="mt-4 text-xs text-gray-500 font-mono opacity-50">
+            v1.0.0
+          </div>
       </div>
 
       {/* Boutons Settings & Help (en haut à droite) */}

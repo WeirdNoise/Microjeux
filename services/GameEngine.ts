@@ -19,8 +19,20 @@ import {
   DOG_BOOST_SPEED,
   OLD_MAN_SPEED,
   PLAYER_RADIUS,
+  SLOW_ZONE_RADIUS,
+  GIANT_DOG_SIZE,
   PLAYER_MAX_BOOST_TIME,
-  PLAYER_MAX_GHOST_TIME
+  PLAYER_MAX_GHOST_TIME,
+  AI_GROW_PROBABILITY,
+  AI_PIPI_PROBABILITY,
+  AI_SLOW_ZONE_PROBABILITY,
+  AI_DISPERSION_PROBABILITY,
+  AI_CLEAN_PROBABILITY,
+  AI_GROW_COOLDOWN,
+  AI_PIPI_COOLDOWN,
+  AI_SLOW_ZONE_COOLDOWN,
+  AI_DISPERSION_COOLDOWN,
+  AI_CLEAN_COOLDOWN
 } from '../constants';
 
 // --- PHYSICS HELPERS ---
@@ -183,22 +195,22 @@ export const createInitialState = (config: GameConfig): GameState => {
   // 2. Generate Enemies
   const spawnEnemy = (type: EntityType.BARRIER | EntityType.DOG | EntityType.OLD_MAN, count: number) => {
       for (let i = 0; i < count; i++) {
-          const size = type === EntityType.DOG ? 60 : 80;
+          const size = type === EntityType.DOG ? 50 : 60;
           let safe = false;
           let attempts = 0;
-          const distConstraint = type === EntityType.DOG ? 400 : 200;
+          const distConstraint = type === EntityType.DOG ? 500 : 300;
 
           while (!safe && attempts < 500) {
               attempts++;
-              const x = Math.random() * (GAME_WIDTH - 200) + 100;
-              const y = Math.random() * (GAME_HEIGHT - 200) + 50;
+              const x = Math.random() * (GAME_WIDTH - 300) + 150;
+              const y = Math.random() * (GAME_HEIGHT - 300) + 150;
                
               const dx = x - playerStart.x;
               const dy = y - playerStart.y;
               if (Math.sqrt(dx*dx + dy*dy) < distConstraint) continue;
                    
                const hitWall = walls.some(wall => checkAABB(
-                   x - size/2 - 20, y - size/2 - 20, size + 40, size + 40, 
+                   x - size/2 - 40, y - size/2 - 40, size + 80, size + 80, 
                    wall.x, wall.y, wall.width, wall.height
                ));
                if (hitWall) continue;
@@ -272,7 +284,10 @@ export const createInitialState = (config: GameConfig): GameState => {
     lastMidiDebug: "Waiting...",
     wrongAnswers: 0,
     dogGrowTimeLeft: config.dogGrowDuration,
-    puddles: []
+    puddles: [],
+    lastPeeWallId: null,
+    peeCount: 0,
+    usedRiddleIndices: []
   };
 };
 
@@ -306,14 +321,117 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       });
   }
 
-  if (input.actionCancel) {
+  // --- AI SIMULATION FOR NON-MANUAL CHARACTERS ---
+  const simulatedInput: InputState = JSON.parse(JSON.stringify(input)); // Deep copy to avoid modifying original input
+
+  if (simulatedInput.actionCancel) {
       return { ...state, status: 'MENU' };
   }
 
   if (state.status !== 'PLAYING') return newState;
-  
+
+  newState.enemies.forEach(enemy => {
+      if (!enemy.isManual) {
+          if (enemy.type === EntityType.DOG) {
+              // Grow logic
+              if (enemy.aiGrowCooldown && enemy.aiGrowCooldown > 0) enemy.aiGrowCooldown--;
+              const distToPlayer = Math.sqrt((enemy.x - state.player.x)**2 + (enemy.y - state.player.y)**2);
+              if (distToPlayer < 200 && (!enemy.aiGrowCooldown || enemy.aiGrowCooldown <= 0) && state.dogGrowTimeLeft > 0) {
+                  if (Math.random() < AI_GROW_PROBABILITY) {
+                      simulatedInput.enemies.dog.growTrigger = true;
+                  }
+              }
+              // If already growing, keep it for a few seconds
+              if (enemy.isGrowing && Math.random() > 0.01) {
+                  simulatedInput.enemies.dog.growTrigger = true;
+              } else if (enemy.isGrowing) {
+                  enemy.aiGrowCooldown = AI_GROW_COOLDOWN;
+              }
+
+              // Dog Boost logic (AI)
+              if (enemy.boostCooldownTimer && enemy.boostCooldownTimer > 0) enemy.boostCooldownTimer--;
+              if (!enemy.isBoosting && (!enemy.boostCooldownTimer || enemy.boostCooldownTimer <= 0)) {
+                  const distToPlayer = Math.sqrt((enemy.x - state.player.x)**2 + (enemy.y - state.player.y)**2);
+                  if (distToPlayer < 300 && Math.random() < 0.01) {
+                      simulatedInput.enemies.dog.boost = true;
+                      // Set direction towards player for the boost
+                      const dx = state.player.x - enemy.x;
+                      const dy = state.player.y - enemy.y;
+                      const dist = Math.sqrt(dx*dx + dy*dy);
+                      if (dist > 0) {
+                          enemy.lastMoveDir = { x: dx/dist, y: dy/dist };
+                      }
+                  }
+              }
+
+              // Pipi logic
+              if (enemy.aiPipiCooldown && enemy.aiPipiCooldown > 0) enemy.aiPipiCooldown--;
+              if (newState.puddles.length === 0 && newState.peeCount < 10 && (!enemy.aiPipiCooldown || enemy.aiPipiCooldown <= 0)) {
+                  let nearWall = false;
+                  for (const wall of newState.walls) {
+                      if (wall.id === state.lastPeeWallId) continue;
+                      const dx = Math.max(wall.x - enemy.x, 0, enemy.x - (wall.x + wall.width));
+                      const dy = Math.max(wall.y - enemy.y, 0, enemy.y - (wall.y + wall.height));
+                      if (Math.sqrt(dx*dx + dy*dy) < 80) { nearWall = true; break; }
+                  }
+                  if (nearWall && Math.random() < AI_PIPI_PROBABILITY) {
+                      simulatedInput.enemies.dog.pipiTrigger = true;
+                      enemy.aiPipiCooldown = AI_PIPI_COOLDOWN;
+                  }
+              }
+          } else if (enemy.type === EntityType.OLD_MAN) {
+              // Slow Zone logic
+              if (enemy.aiSlowZoneCooldown && enemy.aiSlowZoneCooldown > 0) enemy.aiSlowZoneCooldown--;
+              const distToPlayer = Math.sqrt((enemy.x - state.player.x)**2 + (enemy.y - state.player.y)**2);
+              if (distToPlayer < SLOW_ZONE_RADIUS && (!enemy.aiSlowZoneCooldown || enemy.aiSlowZoneCooldown <= 0) && state.slowZoneTimeLeft > 0) {
+                  if (Math.random() < AI_SLOW_ZONE_PROBABILITY) {
+                      simulatedInput.enemies.oldMan.slowZoneTrigger = true;
+                  }
+              }
+              // If already active, keep it
+              if (state.isSlowZoneActive && Math.random() > 0.02) {
+                  simulatedInput.enemies.oldMan.slowZoneTrigger = true;
+              } else if (state.isSlowZoneActive) {
+                  enemy.aiSlowZoneCooldown = AI_SLOW_ZONE_COOLDOWN;
+              }
+
+              // Dispersion logic
+              if (enemy.aiDispersionCooldown && enemy.aiDispersionCooldown > 0) enemy.aiDispersionCooldown--;
+              if (!enemy.aiDispersionCooldown || enemy.aiDispersionCooldown <= 0) {
+                  const otherOldMen = newState.enemies.filter(e => e.type === EntityType.OLD_MAN && e.id !== enemy.id);
+                  const isClumped = otherOldMen.some(other => Math.sqrt((enemy.x - other.x)**2 + (enemy.y - other.y)**2) < 100);
+                  if (isClumped && Math.random() < AI_DISPERSION_PROBABILITY) {
+                      simulatedInput.enemies.oldMan.dispersionTrigger = true;
+                      enemy.aiDispersionCooldown = AI_DISPERSION_COOLDOWN;
+                  }
+              }
+              // If already dispersing, keep it for a bit
+              if (enemy.dispersionTarget && Math.random() > 0.05) {
+                  simulatedInput.enemies.oldMan.dispersionTrigger = true;
+              }
+
+              // Cleaning logic
+              if (enemy.aiCleanCooldown && enemy.aiCleanCooldown > 0) enemy.aiCleanCooldown--;
+              if (!enemy.aiCleanCooldown || enemy.aiCleanCooldown <= 0) {
+                  let nearTaggedWall = false;
+                  for (const wall of newState.walls) {
+                      if (!wall.isTagged && wall.tagProgress > 0) {
+                          const dx = enemy.x - (wall.x + wall.width/2);
+                          const dy = enemy.y - (wall.y + wall.height/2);
+                          if (Math.sqrt(dx*dx + dy*dy) < 100) { nearTaggedWall = true; break; }
+                      }
+                  }
+                  if (nearTaggedWall && Math.random() < AI_CLEAN_PROBABILITY) {
+                      simulatedInput.enemies.oldMan.actionCleanTrigger = true;
+                      enemy.aiCleanCooldown = AI_CLEAN_COOLDOWN;
+                  }
+              }
+          }
+      }
+  });
+
   // 0. SLOW ZONE LOGIC
-  if (input.enemies.oldMan.slowZoneTrigger && state.slowZoneTimeLeft > 0) {
+  if (simulatedInput.enemies.oldMan.slowZoneTrigger && state.slowZoneTimeLeft > 0) {
       newState.isSlowZoneActive = true;
       if (!state.isSlowZoneActive) {
           newState.audioEvents.push('SLOW_ZONE_ENTER');
@@ -330,7 +448,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   }
 
   // 0.1 DOG GROW LOGIC
-  let isDogGrowing = input.enemies.dog.growTrigger && state.dogGrowTimeLeft > 0;
+  let isDogGrowing = simulatedInput.enemies.dog.growTrigger && state.dogGrowTimeLeft > 0;
   if (isDogGrowing) {
       newState.dogGrowTimeLeft = Math.max(0, newState.dogGrowTimeLeft - 1/60);
   }
@@ -339,12 +457,14 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   newState.puddles = state.puddles.map(p => ({ ...p, timeLeft: p.timeLeft - 1/60 })).filter(p => p.timeLeft > 0);
 
   // 0.3 DOG PIPI LOGIC
-  if (input.enemies.dog.pipiTrigger && newState.puddles.length === 0) {
+  if (simulatedInput.enemies.dog.pipiTrigger && newState.puddles.length === 0 && newState.peeCount < 10) {
       const dog = newState.enemies.find(e => e.type === EntityType.DOG);
       if (dog) {
           let closestWall: Wall | null = null;
           let minDist = 80; 
           for (const wall of newState.walls) {
+              if (wall.id === newState.lastPeeWallId) continue; // Cannot pee on same wall twice in a row
+
               const dx = Math.max(wall.x - dog.x, 0, dog.x - (wall.x + wall.width));
               const dy = Math.max(wall.y - dog.y, 0, dog.y - (wall.y + wall.height));
               const dist = Math.sqrt(dx*dx + dy*dy);
@@ -356,6 +476,8 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
           if (closestWall) {
               newState.audioEvents.push('DOG_PIPI');
+              newState.lastPeeWallId = closestWall.id;
+              newState.peeCount++;
               newState.puddles.push({
                   id: `puddle_${Date.now()}`,
                   x: dog.x,
@@ -370,24 +492,23 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   }
 
   // 1. PLAYER LOGIC
-  let isBoosting = input.actionSecondary && newState.player.boostTimeLeft > 0;
+  let isBoosting = simulatedInput.actionSecondary && newState.player.boostTimeLeft > 0;
   if (isBoosting) newState.player.boostTimeLeft = Math.max(0, newState.player.boostTimeLeft - 1/60);
   newState.player.isBoosting = isBoosting;
 
   const wasGhosting = newState.player.isGhosting;
-  let isGhosting = input.actionGhost && newState.player.ghostTimeLeft > 0;
+  let isGhosting = simulatedInput.actionGhost && newState.player.ghostTimeLeft > 0;
   if (isGhosting) newState.player.ghostTimeLeft = Math.max(0, newState.player.ghostTimeLeft - 1/60);
   newState.player.isGhosting = isGhosting;
 
   // Apply Slowdown if in zone
   let slowdownFactor = 1.0;
   if (newState.isSlowZoneActive) {
-      const SLOW_RADIUS = 150;
       const isInSlowZone = newState.enemies.some(e => {
           if (e.type === EntityType.OLD_MAN) {
               const dx = newState.player.x - e.x;
               const dy = newState.player.y - e.y;
-              return Math.sqrt(dx*dx + dy*dy) < SLOW_RADIUS;
+              return Math.sqrt(dx*dx + dy*dy) < SLOW_ZONE_RADIUS;
           }
           return false;
       });
@@ -423,6 +544,10 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               else if (minDist === distTop) newState.player.y = wall.y - POP_MARGIN;
               else if (minDist === distBottom) newState.player.y = wall.y + wall.height + POP_MARGIN;
               
+              // Ensure we are within boundaries after push
+              newState.player.x = Math.max(pR, Math.min(GAME_WIDTH - pR, newState.player.x));
+              newState.player.y = Math.max(pR, Math.min(GAME_HEIGHT - pR, newState.player.y));
+
               // Stop velocity to prevent re-entering immediately
               newState.player.velocity = { x: 0, y: 0 };
               break; // Handle one wall collision at a time (simplification)
@@ -430,11 +555,66 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       }
   }
 
+  // PUDDLE PUSH-OUT LOGIC: If a puddle is under Tchipeur or Old Men, push them out.
+  const entitiesToPush = [newState.player, ...newState.enemies.filter(e => e.type === EntityType.OLD_MAN)];
+  for (const entity of entitiesToPush) {
+      for (const puddle of newState.puddles) {
+          const radius = 'radius' in entity ? entity.radius : (entity.width / 2);
+          // Puddle coordinates are center-based in some places, but checkAABB uses top-left.
+          // In GameCanvas: ctx.translate(puddle.x, puddle.y); ctx.ellipse(0, 0, puddle.width/2, puddle.height/2...)
+          // So puddle.x, puddle.y is the center.
+          const px = puddle.x - puddle.width / 2;
+          const py = puddle.y - puddle.height / 2;
+
+          if (entity.x + radius > px &&
+              entity.x - radius < px + puddle.width &&
+              entity.y + radius > py &&
+              entity.y - radius < py + puddle.height) {
+              
+              // Push to nearest edge
+              const dLeft = Math.abs(entity.x - px);
+              const dRight = Math.abs(entity.x - (px + puddle.width));
+              const dTop = Math.abs(entity.y - py);
+              const dBottom = Math.abs(entity.y - (py + puddle.height));
+              const min = Math.min(dLeft, dRight, dTop, dBottom);
+              
+              let targetX = entity.x;
+              let targetY = entity.y;
+
+              if (min === dLeft) targetX = px - radius;
+              else if (min === dRight) targetX = px + puddle.width + radius;
+              else if (min === dTop) targetY = py - radius;
+              else if (min === dBottom) targetY = py + puddle.height + radius;
+
+              // Check if target position is inside a wall
+              const isInsideWall = newState.walls.some(wall => 
+                  checkAABB(targetX - radius, targetY - radius, radius * 2, radius * 2, wall.x, wall.y, wall.width, wall.height)
+              );
+
+              if (!isInsideWall) {
+                  entity.x = targetX;
+                  entity.y = targetY;
+              } else {
+                  // If nearest edge is a wall, try other edges or just move away from puddle center
+                  const dx = entity.x - puddle.x;
+                  const dy = entity.y - puddle.y;
+                  const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                  entity.x += (dx / dist) * 10;
+                  entity.y += (dy / dist) * 10;
+              }
+
+              // Boundary checks
+              entity.x = Math.max(radius, Math.min(GAME_WIDTH - radius, entity.x));
+              entity.y = Math.max(radius, Math.min(GAME_HEIGHT - radius, entity.y));
+          }
+      }
+  }
+
   if (newState.player.stunTimer > 0) newState.player.stunTimer--;
 
   // Direction logic with Boost "Cruise Control"
-  let dirX = input.axisX;
-  let dirY = input.axisY;
+  let dirX = simulatedInput.axisX;
+  let dirY = simulatedInput.axisY;
   const inputLen = Math.sqrt(dirX*dirX + dirY*dirY);
   
   if (inputLen > 0.1) {
@@ -465,7 +645,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
   newState.player.y = pMove.y;
 
   // 2. TAGGING LOGIC
-  if (input.actionPrimaryTrigger && newState.player.stunTimer <= 0) {
+  if (simulatedInput.actionPrimaryTrigger && newState.player.stunTimer <= 0) {
     let closestWall: Wall | null = null;
     let minDistance = 9999;
     const TAG_REACH = PLAYER_RADIUS + 40;
@@ -528,25 +708,24 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
 
   // 3. ENEMY LOGIC
   const difficultyMultiplier = state.config.difficulty === 'EASY' ? 0.8 : state.config.difficulty === 'HARD' ? 1.2 : 1.0;
+  const baseOldManSpeed = OLD_MAN_SPEED * difficultyMultiplier;
+  const baseDogSpeed = DOG_SPEED * difficultyMultiplier;
+  const baseDogSprintSpeed = DOG_SPRINT_SPEED * difficultyMultiplier;
+  const baseDogBoostSpeed = DOG_BOOST_SPEED * difficultyMultiplier;
 
   newState.enemies.forEach(enemy => {
       let evx = 0, evy = 0;
-      let inputSource = enemy.type === EntityType.DOG ? input.enemies.dog : input.enemies.oldMan;
-      
-      const baseOldManSpeed = OLD_MAN_SPEED * difficultyMultiplier;
-      const baseDogSpeed = DOG_SPEED * difficultyMultiplier;
-      const baseDogSprintSpeed = DOG_SPRINT_SPEED * difficultyMultiplier;
-      const baseDogBoostSpeed = DOG_BOOST_SPEED * difficultyMultiplier;
+      let inputSource = enemy.type === EntityType.DOG ? simulatedInput.enemies.dog : simulatedInput.enemies.oldMan;
       
       // Pour le chien, on utilise désormais le Channel 1 (inputs standards) pour le boost
       if (enemy.type === EntityType.DOG) {
-          const dogInput = input.enemies.dog;
+          const dogInput = simulatedInput.enemies.dog;
 
           // Handle Growing
           if (isDogGrowing) {
               enemy.isGrowing = true;
-              enemy.width = 120; // Double size
-              enemy.height = 120;
+              enemy.width = GIANT_DOG_SIZE; // Use constant
+              enemy.height = GIANT_DOG_SIZE;
 
               // Push out of walls if growing
               for (let i = 0; i < 3; i++) { // Resolve overlaps
@@ -587,6 +766,15 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           
           if (hasInput || dogInput.boost) {
               enemy.isManual = true;
+              enemy.manualTimer = 180; // 3 seconds of manual control
+          }
+
+          if (enemy.isManual) {
+              if (enemy.manualTimer && enemy.manualTimer > 0) {
+                  enemy.manualTimer--;
+              } else {
+                  enemy.isManual = false;
+              }
           }
 
           if (hasInput) {
@@ -613,18 +801,14 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               }
           }
       }
-      else if (inputSource && (Math.abs(inputSource.axisX) > 0.05 || Math.abs(inputSource.axisY) > 0.05 || (enemy.type === EntityType.OLD_MAN && input.enemies.oldMan.dispersionTrigger))) {
+      else if (inputSource && (
+          Math.abs(inputSource.axisX) > 0.05 || 
+          Math.abs(inputSource.axisY) > 0.05 || 
+          (enemy.type === EntityType.OLD_MAN && (input.enemies.oldMan.dispersionTrigger || input.enemies.oldMan.slowZoneTrigger || input.enemies.oldMan.actionCleanTrigger))
+      )) {
           enemy.isManual = true;
       }
       
-      // Update Random Speed for Dog (Manual or Auto)
-      if (enemy.type === EntityType.DOG) {
-          enemy.randomSpeedTimer = (enemy.randomSpeedTimer || 0) - 1;
-          if (enemy.randomSpeedTimer <= 0) {
-              enemy.randomSpeedFactor = 0.8 + Math.random() * 1.4; 
-              enemy.randomSpeedTimer = 20 + Math.random() * 40;
-          }
-      }
 
       if (enemy.isManual && inputSource) {
           // --- MODE MANUEL ---
@@ -642,15 +826,12 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               // --- MODE MANUEL CLASSIQUE ---
               let mSpeed = (enemy.type === EntityType.DOG ? baseDogSpeed : baseOldManSpeed) * 1.5;
               
-              if (enemy.type === EntityType.DOG) {
-                  mSpeed *= (enemy.randomSpeedFactor || 1);
-              }
 
               evx = inputSource.axisX * mSpeed;
               evy = inputSource.axisY * mSpeed;
 
               // --- LOGIQUE DISPERSION VIEUX ---
-              if (enemy.type === EntityType.OLD_MAN && input.enemies.oldMan.dispersionTrigger) {
+              if (enemy.type === EntityType.OLD_MAN && simulatedInput.enemies.oldMan.dispersionTrigger) {
                   const oldMen = newState.enemies.filter(e => e.type === EntityType.OLD_MAN);
                   
                   // If no target, pick a random target
@@ -704,32 +885,6 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
               enemy.velocity = {x: evx, y: evy};
           }
           
-          // --- LOGIQUE NETTOYAGE VIEUX ---
-          if (enemy.type === EntityType.OLD_MAN && input.enemies.oldMan.actionCleanTrigger) {
-              // Si il ne reste plus qu'un mur à taguer, le vieux ne plus nettoyer
-              const wallsRemaining = newState.walls.filter(w => !w.isTagged).length;
-              
-              if (wallsRemaining > 1) {
-                  let targetWall: Wall | null = null;
-                  let minDist = 100;
-                  for (const wall of newState.walls) {
-                      if (!wall.isTagged && wall.tagProgress > 0) {
-                          const dx = enemy.x - (wall.x + wall.width/2);
-                          const dy = enemy.y - (wall.y + wall.height/2);
-                          const dist = Math.sqrt(dx*dx + dy*dy);
-                          if (dist < minDist) {
-                              minDist = dist;
-                              targetWall = wall;
-                          }
-                      }
-                  }
-                  if (targetWall) {
-                      targetWall.tagProgress = Math.max(0, targetWall.tagProgress - 10);
-                      newState.audioEvents.push('SPRAY'); 
-                  }
-              }
-          }
-          
           if (enemy.state !== 'chasing' && enemy.state !== 'idle') {
               enemy.state = 'chasing';
           }
@@ -737,11 +892,44 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
       else {
           // --- MODE AUTOMATIQUE (IA) ---
           if (enemy.type === EntityType.OLD_MAN) {
-               const dx = newState.player.x - enemy.x;
-               const dy = newState.player.y - enemy.y;
-               const dist = Math.sqrt(dx*dx + dy*dy);
+               // --- OLD MAN AI: TARGET PARTIALLY TAGGED WALLS ---
+               let targetWall: Wall | null = null;
+               let minWallDist = Infinity;
+
+               // Find closest partially tagged wall
+               for (const wall of newState.walls) {
+                   if (!wall.isTagged && wall.tagProgress > 0) {
+                       const wcx = wall.x + wall.width / 2;
+                       const wcy = wall.y + wall.height / 2;
+                       const d = Math.sqrt((enemy.x - wcx)**2 + (enemy.y - wcy)**2);
+                       if (d < minWallDist) {
+                           minWallDist = d;
+                           targetWall = wall;
+                       }
+                   }
+               }
+
                let dirX = 0, dirY = 0;
-               if (dist > 0) { dirX = dx / dist; dirY = dy / dist; }
+               if (targetWall) {
+                   // Move towards wall
+                   const wcx = targetWall.x + targetWall.width / 2;
+                   const wcy = targetWall.y + targetWall.height / 2;
+                   const dx = wcx - enemy.x;
+                   const dy = wcy - enemy.y;
+                   const dist = Math.sqrt(dx*dx + dy*dy);
+                   if (dist > 0) { dirX = dx / dist; dirY = dy / dist; }
+                   
+                   // If close enough, trigger cleaning (simulated input)
+                   if (dist < 120) {
+                       simulatedInput.enemies.oldMan.actionCleanTrigger = true;
+                   }
+               } else {
+                   // Default behavior: follow player
+                   const dx = newState.player.x - enemy.x;
+                   const dy = newState.player.y - enemy.y;
+                   const dist = Math.sqrt(dx*dx + dy*dy);
+                   if (dist > 0) { dirX = dx / dist; dirY = dy / dist; }
+               }
 
                const jitter = 0.8;
                evx = enemy.velocity.x + (Math.random() - 0.5) * jitter;
@@ -817,43 +1005,109 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
                
                enemy.velocity = {x: evx, y: evy};
           }
-          else if (enemy.type === EntityType.DOG && enemy.state === 'chasing') {
+          else if (enemy.type === EntityType.DOG) {
+              // --- PERMANENT DOG CHASE AI ---
+              // Force chasing state if not barking or if we want it to move anyway
+              if (enemy.state !== 'barking') {
+                  enemy.state = 'chasing';
+              }
+
               const dx = newState.player.x - enemy.x;
               const dy = newState.player.y - enemy.y;
-              const distToTarget = Math.sqrt(dx*dx + dy*dy);
-              let currentSpeed = baseDogSpeed;
-              if (enemy.sprintTimer && enemy.sprintTimer > 0) {
-                  enemy.sprintTimer--;
-                  currentSpeed = baseDogSprintSpeed;
-              } else if (Math.random() < 0.005) enemy.sprintTimer = 120;
+              const distSq = dx*dx + dy*dy;
+              const dist = Math.sqrt(distSq) || 1;
+              
+              // Speed depends on state: slower when barking but NEVER zero
+              let speed = baseDogSpeed * 1.5;
+              
+              // --- SPRINT LOGIC ---
+              if (enemy.sprintTimer === undefined) enemy.sprintTimer = 0;
+              if (enemy.cooldown === undefined) enemy.cooldown = 0;
 
-              if (distToTarget > 10) {
-                  let dX = dx / distToTarget;
-                  let dY = dy / distToTarget;
-                  
-                  // Wall avoidance (Dog)
-                  newState.walls.forEach(wall => {
-                      const wallCx = wall.x + wall.width/2;
-                      const wallCy = wall.y + wall.height/2;
-                      const distX = Math.abs(enemy.x - wallCx) - (wall.width/2 + enemy.width/2);
-                      const distY = Math.abs(enemy.y - wallCy) - (wall.height/2 + enemy.height/2);
-                      
-                      // Si on est proche d'un mur
-                      if (distX < 40 && distY < 40) {
-                           const awayX = enemy.x - wallCx;
-                           const awayY = enemy.y - wallCy;
-                           const len = Math.sqrt(awayX*awayX + awayY*awayY);
-                           // Réduction de la force de répulsion de 2.5 à 1.5 pour éviter que le chien ne reparte en arrière
-                           if (len > 0) { dX += (awayX / len) * 1.5; dY += (awayY / len) * 1.5; }
-                      }
-                  });
-                  
-                  const finalLen = Math.sqrt(dX*dX + dY*dY);
-                  if (finalLen > 0) {
-                      evx = (dX / finalLen) * currentSpeed;
-                      evy = (dY / finalLen) * currentSpeed;
+              // If not sprinting and cooldown is over, chance to sprint if player is "visible" (close enough)
+              if (enemy.sprintTimer <= 0 && enemy.cooldown <= 0 && dist < 600) {
+                  if (Math.random() < 0.01) { // ~0.6% chance per frame
+                      enemy.sprintTimer = 90; // 1.5 seconds of sprint
+                      newState.audioEvents.push('BARK'); // Small bark when starting to run
                   }
-                  enemy.velocity = {x: evx, y: evy};
+              }
+
+              if (enemy.sprintTimer > 0) {
+                  speed = baseDogSprintSpeed * 1.2; // Extra boost during sprint
+                  enemy.sprintTimer--;
+                  if (enemy.sprintTimer <= 0) {
+                      enemy.cooldown = 180; // 3 seconds cooldown after sprint
+                  }
+              } else if (enemy.cooldown > 0) {
+                  enemy.cooldown--;
+              }
+
+              if (enemy.state === 'barking') speed *= 0.5;
+              
+              // Stuck detection
+              if (enemy.stuckFrames === undefined) enemy.stuckFrames = 0;
+              if (enemy.lastX === undefined) { enemy.lastX = enemy.x; enemy.lastY = enemy.y; }
+              
+              const dMovedSq = (enemy.x - (enemy.lastX || 0))**2 + (enemy.y - (enemy.lastY || 0))**2;
+              if (dMovedSq < 0.01) { // Very small threshold
+                  enemy.stuckFrames++;
+              } else {
+                  enemy.stuckFrames = 0;
+                  enemy.lastX = enemy.x;
+                  enemy.lastY = enemy.y;
+              }
+
+              let vx = (dx / dist) * speed;
+              let vy = (dy / dist) * speed;
+
+              // If stuck for more than 3 frames, start sliding aggressively
+              if (enemy.stuckFrames > 3) {
+                  const side = (Math.floor(Date.now() / 500) % 2 === 0) ? 1 : -1;
+                  vx += (-dy / dist) * speed * 2.5 * side;
+                  vy += (dx / dist) * speed * 2.5 * side;
+              } else {
+                  // Constant wobble to ensure it's always "in motion" and slides better
+                  const time = Date.now() * 0.008;
+                  const wobble = Math.sin(time) * 0.6;
+                  vx += (-dy / dist) * speed * wobble;
+                  vy += (dx / dist) * speed * wobble;
+              }
+
+              // Final check: ensure there is ALWAYS a minimum movement
+              const finalVel = Math.sqrt(vx*vx + vy*vy);
+              if (finalVel < 0.5) {
+                  vx = (Math.random() - 0.5) * 2;
+                  vy = (Math.random() - 0.5) * 2;
+              }
+
+              enemy.velocity = {x: vx, y: vy};
+              evx = vx;
+              evy = vy;
+          }
+      }
+      // --- LOGIQUE NETTOYAGE VIEUX (COMMUN MANUEL/IA) ---
+      if (enemy.type === EntityType.OLD_MAN && simulatedInput.enemies.oldMan.actionCleanTrigger) {
+          // Si il ne reste plus qu'un mur à taguer, le vieux ne plus nettoyer
+          const wallsRemaining = newState.walls.filter(w => !w.isTagged).length;
+          
+          if (wallsRemaining > 1) {
+              let targetWall: Wall | null = null;
+              let minDist = 100;
+              for (const wall of newState.walls) {
+                  if (!wall.isTagged && wall.tagProgress > 0) {
+                      const dx = enemy.x - (wall.x + wall.width/2);
+                      const dy = enemy.y - (wall.y + wall.height/2);
+                      const dist = Math.sqrt(dx*dx + dy*dy);
+                      if (dist < minDist) {
+                          minDist = dist;
+                          targetWall = wall;
+                      }
+                  }
+              }
+              if (targetWall) {
+                  const decrement = 100 / state.config.tagSpamRequired;
+                  targetWall.tagProgress = Math.max(0, targetWall.tagProgress - decrement);
+                  newState.audioEvents.push('SPRAY'); 
               }
           }
       }
@@ -886,7 +1140,7 @@ export const updateGameState = (state: GameState, input: InputState): GameState 
           enemy.width, enemy.height, 
           newState.walls, 
           newState.puddles,
-          false, 
+          enemy.type === EntityType.DOG, 
           false, 
           enemy.type === EntityType.DOG
       );

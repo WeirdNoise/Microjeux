@@ -7,6 +7,21 @@ export const GAME_HEIGHT = 1080;
 export const PLAYER_SPEED = 7;
 export const PLAYER_BOOST_SPEED = 11;
 export const PLAYER_RADIUS = 35; 
+export const SLOW_ZONE_RADIUS = 200;
+export const GIANT_DOG_SIZE = 150;
+
+// AI Simulation Constants
+export const AI_GROW_PROBABILITY = 0.005; // 0.5% chance per frame (~30% per second)
+export const AI_PIPI_PROBABILITY = 0.01; // 1% chance per frame
+export const AI_SLOW_ZONE_PROBABILITY = 0.01;
+export const AI_DISPERSION_PROBABILITY = 0.005;
+export const AI_CLEAN_PROBABILITY = 0.02;
+
+export const AI_GROW_COOLDOWN = 600; // 10 seconds
+export const AI_PIPI_COOLDOWN = 300; // 5 seconds
+export const AI_SLOW_ZONE_COOLDOWN = 600; // 10 seconds
+export const AI_DISPERSION_COOLDOWN = 300; // 5 seconds
+export const AI_CLEAN_COOLDOWN = 120; // 2 seconds
 
 export const PLAYER_MAX_BOOST_TIME = 20; 
 export const PLAYER_MAX_GHOST_TIME = 20; 

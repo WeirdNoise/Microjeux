@@ -44,6 +44,7 @@ const App: React.FC = () => {
 
   // --- SCALING FOR PREVIEW ---
   const [scale, setScale] = useState(1);
+  const [persistentUsedRiddleIndices, setPersistentUsedRiddleIndices] = useState<number[]>([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -199,6 +200,8 @@ const App: React.FC = () => {
             onStart={startGame} 
             initialConfig={currentConfig.current} 
             inputManager={inputManagerReady}
+            usedRiddleIndices={persistentUsedRiddleIndices}
+            onRiddleUsed={(indices) => setPersistentUsedRiddleIndices(indices)}
           />
         ) : (
           <>

@@ -137,13 +137,13 @@ export class InputManager {
       // Channel 0 (Hard 1) = Dog Boost (Bouton Noir = Note 15)
       if (channel === 0) {
            if (type === 144) {
-               if (note === 15) this.midiState.dog.boost = (velocity > 0);
+               // if (note === 15) this.midiState.dog.boost = (velocity > 0); // Boost disabled as requested
                if (note === 13) this.midiState.dog.grow = (velocity > 0);
                // Pipi: ON = 64, OFF = 0
                if (note === 14) this.midiState.dog.pipi = (velocity >= 64);
            }
            if (type === 128) {
-               if (note === 15) this.midiState.dog.boost = false;
+               // if (note === 15) this.midiState.dog.boost = false; // Boost disabled
                if (note === 13) this.midiState.dog.grow = false;
                if (note === 14) this.midiState.dog.pipi = false;
            }

@@ -6,6 +6,8 @@ interface MainMenuProps {
   initialConfig: GameConfig;
   onStart: (config: GameConfig, wrongAnswers: number) => void;
   inputManager: InputManager | null;
+  usedRiddleIndices: number[];
+  onRiddleUsed: (indices: number[]) => void;
 }
 
 const RIDDLES = [
@@ -326,14 +328,15 @@ const RIDDLES = [
   }
 ];
 
-const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManager }) => {
+const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManager, usedRiddleIndices, onRiddleUsed }) => {
   const [config, setConfig] = useState<GameConfig>(initialConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCommandsOpen, setIsCommandsOpen] = useState(false);
   
   // Riddle State
   const [isRiddleOpen, setIsRiddleOpen] = useState(false);
-  const [currentRiddle, setCurrentRiddle] = useState(RIDDLES[0]);
+  const [currentRiddleIndex, setCurrentRiddleIndex] = useState(0);
+  const currentRiddle = RIDDLES[currentRiddleIndex];
   const [isWrongAnim, setIsWrongAnim] = useState(false);
   const [wrongAnswers, setWrongAnswers] = useState(0);
 
@@ -449,8 +452,23 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
 
   const handleStartRequest = () => {
       // Pick a random riddle ensuring variety
-      const random = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
-      setCurrentRiddle(random);
+      const availableIndices = Array.from({ length: RIDDLES.length }, (_, i) => i)
+        .filter(i => !usedRiddleIndices.includes(i));
+      
+      let nextIndex;
+      let nextUsed = [...usedRiddleIndices];
+
+      if (availableIndices.length === 0) {
+        // All used, reset
+        nextIndex = Math.floor(Math.random() * RIDDLES.length);
+        nextUsed = [nextIndex];
+      } else {
+        nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+        nextUsed.push(nextIndex);
+      }
+
+      setCurrentRiddleIndex(nextIndex);
+      onRiddleUsed(nextUsed);
       setIsWrongAnim(false);
       setIsRiddleOpen(true);
       setWrongAnswers(0);
@@ -542,8 +560,20 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
 
       {/* --- ÉCRAN ACCUEIL --- */}
       <div className={`relative z-10 flex flex-col items-center transition-opacity duration-300 ${isSettingsOpen || isRiddleOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <h1 className="text-9xl font-bold mb-12 tracking-tighter animate-pulse" style={{ textShadow: "0 0 40px rgba(255,255,255,0.3)" }}>
-            LE TCHIPEUR
+          <h1 className="text-9xl font-black mb-12 tracking-tighter italic transform -skew-x-12 flex">
+            {"LE TCHIPEUR".split("").map((char, i) => (
+              <span 
+                key={i} 
+                className="animate-pulse"
+                style={{ 
+                  color: `hsl(${(i * 40) % 360}, 80%, 60%)`,
+                  animationDelay: `${i * 0.1}s`,
+                  textShadow: `0 0 20px hsl(${(i * 40) % 360}, 80%, 60%, 0.5)`
+                }}
+              >
+                {char === " " ? "\u00A0" : char}
+              </span>
+            ))}
           </h1>
           
           <button 
@@ -774,7 +804,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ initialConfig, onStart, inputManage
                             <div className="border border-gray-700 p-2 bg-white/5">
                                 <h4 className="font-bold mb-1 text-white text-center border-b border-gray-700 pb-1">CANAL 1: CHIEN</h4>
                                 <div className="flex justify-between"><span>POTS (CC 48/49)</span><span>DÉPLACEMENT</span></div>
-                                <div className="flex justify-between"><span>BTN NOIR (NOTE 15)</span><span>BOOST</span></div>
                                 <div className="flex justify-between text-orange-500"><span>SWITCH (NOTE 13)</span><span>CHIEN GÉANT (20s)</span></div>
                                 <div className="flex justify-between text-yellow-400"><span>BTN BLANC (NOTE 14)</span><span>PIPI (BLOCAGE)</span></div>
                             </div>

@@ -63,6 +63,7 @@ export interface Enemy {
   cooldown: number;
   sprintTimer?: number; // For Dog sprint mechanic
   isManual?: boolean; // True if MIDI control has taken over
+  manualTimer?: number; // Timer to revert to AI if no input
   randomSpeedFactor?: number; // Multiplicateur de vitesse aléatoire
   randomSpeedTimer?: number; // Timer pour changer le facteur aléatoire
   
@@ -73,6 +74,12 @@ export interface Enemy {
   // Logic spécifique au Vieux (Anti-Stuck)
   lastPosition?: Vector2;
   stuckCheckTimer?: number;
+  totalStuckFrames?: number;
+
+  // Logic spécifique au Chien (Anti-Stuck)
+  stuckFrames?: number;
+  lastX?: number;
+  lastY?: number;
 
   // Logic spécifique au Chien (Grossissement)
   isGrowing?: boolean;
@@ -84,6 +91,13 @@ export interface Enemy {
   
   // Dispersion target
   dispersionTarget?: Vector2;
+
+  // AI Logic Fields
+  aiGrowCooldown?: number;
+  aiPipiCooldown?: number;
+  aiSlowZoneCooldown?: number;
+  aiDispersionCooldown?: number;
+  aiCleanCooldown?: number;
 }
 
 export interface Player {
@@ -142,6 +156,9 @@ export interface GameState {
   isSlowZoneActive: boolean;
   dogGrowTimeLeft: number; // In seconds
   puddles: Puddle[];
+  lastPeeWallId: string | null;
+  peeCount: number;
+  usedRiddleIndices: number[];
   lastMidiDebug?: string; // Last raw MIDI message for debug
   wrongAnswers: number; // Count of wrong answers in enigma
 }
